@@ -1,6 +1,38 @@
-// Get canvas and context
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// --- AdMob Integration ---
+async function initAds() {
+    if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
+        const { AdMob } = window.Capacitor.Plugins;
+        try {
+            await AdMob.initialize({
+                requestTrackingAuthorization: true,
+            });
+            console.log("AdMob Initialized");
+        } catch (e) {
+            console.error("AdMob Init Error", e);
+        }
+    }
+}
+
+async function showInterstitial() {
+    if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
+        const { AdMob } = window.Capacitor.Plugins;
+        try {
+            // Test Ad ID for Interstitial
+            await AdMob.prepareInterstitial({
+                adId: 'ca-app-pub-3940256099942544/1033173712',
+            });
+            await AdMob.showInterstitial();
+        } catch (e) {
+            console.warn("AdMob Show Interstitial Error (common in web/emulator):", e.message);
+        }
+    }
+}
+
+initAds();
+// -------------------------
 const loadingScreen = document.getElementById('loadingScreen');
 const startScreen = document.getElementById('startScreen');
 const extrasScreen = document.getElementById('extrasScreen');
@@ -690,6 +722,9 @@ async function gameOverFunction() {
     gameRunning = false;
     isDying = false;
     soundSystem.stopMusic();
+
+    // Show Interstitial Ad on Game Over
+    showInterstitial();
 
     // 1. Get previous record
     const previousBest = parseInt(localStorage.getItem('fishRushHighScore') || '0');
