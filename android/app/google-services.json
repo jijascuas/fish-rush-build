@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572420035953",
+    "project_id": "fish-rush-jijascuas",
+    "storage_bucket": "fish-rush-jijascuas.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572420035953:android:cc9c9a477ba9229857d2d0",
+        "android_client_info": {
+          "package_name": "com.fishrush.jijascuas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQrQK6HkShMa3ond1ViFd0p32gjirxdRc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

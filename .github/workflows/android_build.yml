@@ -1,0 +1,101 @@
+name: Build Android APK & AAB
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Debug Keystore (Persistent SHA-1)
+        run: |
+          mkdir -p ~/.android
+          if [ -f "android/app/debug.keystore" ]; then
+            echo "Using existing debug.keystore"
+            cp android/app/debug.keystore ~/.android/debug.keystore
+          else
+            echo "Generating persistent debug.keystore..."
+            mkdir -p android/app
+            keytool -genkey -v -keystore android/app/debug.keystore \
+              -alias androiddebugkey \
+              -storepass android \
+              -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=FishRush Debug,O=FishRush,C=ES"
+            
+            cp android/app/debug.keystore ~/.android/debug.keystore
+            
+            git config --global user.name "GitHub Actions"
+            git config --global user.email "actions@github.com"
+            git add android/app/debug.keystore
+            git commit -m "Auto-generate persistent debug.keystore" || true
+            git push || true
+          fi
+          echo "=== SHA-1 FINGERPRINT (Use this for Firebase) ==="
+          keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+          echo "================================================="
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Web Assets
+        run: |
+          mkdir -p www
+          cp index.html script.js style.css privacy-policy-en.html www/
+          cp -r assets www/ || true
+
+      - name: Capacitor Sync
+        run: |
+          if [ ! -f "android/build.gradle" ]; then
+            npx cap add android
+          fi
+          npx cap sync android
+
+      - name: Build Android APK (Debug)
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Build Android App Bundle (Release)
+        run: |
+          cd android
+          ./gradlew bundleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FishRush-Debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload AAB (For Play Store)
+        uses: actions/upload-artifact@v4
+        with:
+          name: FishRush-Release-AAB
+          path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Upload Persistence Keystore
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-keystore
+          path: android/app/debug.keystore

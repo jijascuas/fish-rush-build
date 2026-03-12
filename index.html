@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fish Rush</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    
+    <div id="loadingScreen" class="screen">
+        <div id="touchToStart" style="display: none; position: absolute; bottom: 80px; font-size: 24px; color: #4da6ff; text-shadow: 0 0 10px #000; font-weight: bold; animation: pulse 1.5s infinite;">TOUCH TO START</div>
+    </div>
+    
+    <div id="startScreen" class="screen" style="display: none;">
+        <img src="assets/ui/logo_main.png" class="title-image" alt="Fish Rush">
+        <div class="start-buttons-container">
+            <div class="button-row">
+                <button id="startButton" class="button"></button>
+            </div>
+            <div class="button-row">
+                <button id="extrasButton" class="button"></button>
+                <button id="rankingButton" class="button"></button>
+                <button id="optionsButton" class="button"></button>
+            </div>
+            <div class="button-row">
+                <button id="creditsButton" class="button"></button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="extrasScreen" class="screen" style="display: none;">
+        <img src="assets/ui/logo_extras.png" class="extras-title" alt="FISHS">
+        <div class="appearance-grid">
+            <button id="appearance1" class="appearance-btn selected" data-unlock="0">
+                <img src="https://images4.imagebam.com/a2/c9/70/ME1AMWIR_o.png" class="appearance-preview" alt="JAX">
+                <div class="char-name">JAX</div>
+                <div class="unlock-req">0 pts</div>
+            </button>
+            <button id="appearance2" class="appearance-btn" data-unlock="400">
+                <img src="https://images4.imagebam.com/47/fb/3d/ME1ANPJY_o.png" class="appearance-preview" alt="SPIKE">
+                <div class="char-name">SPIKE</div>
+                <div class="unlock-req">400 pts</div>
+            </button>
+            <button id="appearance3" class="appearance-btn" data-unlock="500">
+                <img src="https://images4.imagebam.com/eb/d3/4d/ME1ANQ0L_o.png" class="appearance-preview" alt="GLOOMY">
+                <div class="char-name">GLOOMY</div>
+                <div class="unlock-req">500 pts</div>
+            </button>
+            <button id="appearance4" class="appearance-btn" data-unlock="600">
+                <img src="https://images4.imagebam.com/a8/60/40/ME1ANU40_o.png" class="appearance-preview" alt="SQUISH">
+                <div class="char-name">SQUISH</div>
+                <div class="unlock-req">600 pts</div>
+            </button>
+            <button id="appearance5" class="appearance-btn" data-unlock="700">
+                <img src="https://images4.imagebam.com/b9/6c/a9/ME1ANVFZ_o.png" class="appearance-preview" alt="JETT">
+                <div class="char-name">JETT</div>
+                <div class="unlock-req">700 pts</div>
+            </button>
+            <button id="appearance6" class="appearance-btn" data-unlock="1000">
+                <img src="https://images4.imagebam.com/b2/ff/72/ME1ANX5B_o.png" class="appearance-preview" alt="BUBY">
+                <div class="char-name">BUBY</div>
+                <div class="unlock-req">1000 pts</div>
+            </button>
+        </div>
+        <button id="extrasBackButton" class="button secondary"></button>
+    </div>
+    
+    <div id="optionsScreen" class="screen" style="display: none;">
+        <img src="assets/ui/logo_options.png" class="options-title" alt="Volumen">
+        <div class="volume-control">
+            <input type="range" id="volumeSlider" min="0" max="10" value="5">
+            <div class="volume-value" id="volumeValue">5</div>
+        </div>
+        <button id="backButton" class="button secondary"></button>
+    </div>
+    
+    <div id="creditsScreen" class="screen" style="display: none;">
+        <img src="assets/ui/logo_credits.png" class="credits-image" alt="Credits">
+        <a href="privacy-policy-en.html" target="_blank" class="privacy-link">Privacy Policy</a>
+        <button id="creditsBackButton" class="button secondary"></button>
+    </div>
+    
+    <div id="gameOverScreen" class="screen" style="display: none;">
+        <img src="assets/ui/logo_gameover.png" class="game-over-title" alt="Game Over">
+        <p id="finalScore">Record Dodged: 0</p>
+        <div class="game-over-buttons">
+            <button id="restartButton" class="button danger"></button>
+            <button id="menuButton" class="button secondary"></button>
+        </div>
+    </div>
+
+    <!-- Ranking Screen -->
+    <div id="rankingScreen" class="screen" style="display: none;">
+        <img src="assets/ui/logo_top100.png" alt="TOP 100" style="width: 280px; margin-bottom: 20px;">
+        <div id="leaderboardList" class="ranking-list">
+            <div class="loading-ranks">Loading scores...</div>
+        </div>
+        <button id="rankingBackButton" class="button secondary" style="margin-top: 10px;"></button>
+    </div>
+
+    <!-- Name Entry Screen (Modal) -->
+    <div id="nameEntryScreen" class="screen" style="display: none;">
+        <img src="assets/ui/logo_newrecord.png" alt="NEW RECORD" style="width: 280px; margin-bottom: 10px;">
+        <img src="assets/ui/logo_yourname.png" alt="Your Name" style="width: 240px; margin-bottom: 20px;">
+        <input type="text" id="playerNameInput" maxlength="6" placeholder="NAME..." 
+               style="padding: 15px; font-size: 24px; border-radius: 15px; border: 3px solid #4da6ff; width: 250px; text-align: center; margin-bottom: 30px; background: #0a3d62; color: white;">
+        <button id="submitScoreButton" class="button" style="width: 140px; height: 140px; font-weight: bold;"></button>
+        <button id="nameEntryBackButton" class="button" style="width: 100px; height: 100px; margin-top: 5px;"></button>
+    </div>
+    
+    <div id="instructions">Touch and drag up/down to move the fish</div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "fish-rush",
+  "version": "1.0.0",
+  "description": "Underwater avoid-em-up game",
+  "main": "index.html",
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "scripts": {
+    "build": "mkdir -p www && cp index.html script.js style.css privacy-policy-en.html www/ && cp -r assets www/",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "jijascuas",
+  "license": "ISC"
+}
