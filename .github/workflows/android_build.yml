@@ -66,10 +66,7 @@ jobs:
 
       - name: Capacitor Sync
         run: |
-          if [ ! -f "android/build.gradle" ]; then
-            npx cap add android
-          fi
-          npx cap sync android
+          npx cap sync android || npx cap add android && npx cap sync android
 
       - name: Build Android APK (Debug)
         run: |
