@@ -68,6 +68,13 @@ jobs:
 
       - name: Capacitor Sync
         run: |
+          # Rename icon if it has the double extension from the user upload
+          if [ -f "resources/icon.jpg.png" ]; then mv resources/icon.jpg.png resources/icon.png; fi
+          if [ -f "resources/icon.jpg" ]; then mv resources/icon.jpg resources/icon.png; fi
+          
+          # Generate icons and splash screens
+          npx @capacitor/assets generate --android
+          
           npx cap sync android || npx cap add android && npx cap sync android
 
       - name: Build Android APK (Debug)
