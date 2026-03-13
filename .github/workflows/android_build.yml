@@ -65,6 +65,7 @@ jobs:
           mkdir -p www
           cp index.html script.js style.css privacy-policy-en.html www/
           cp -r assets www/ || true
+          cp -r js www/ || true
 
       - name: Capacitor Sync
         run: |

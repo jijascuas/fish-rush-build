@@ -423,6 +423,13 @@ shieldBubbleImage.src = 'assets/ui/bubble_shield.png';
 const scoreLabelImage = new Image();
 scoreLabelImage.src = 'assets/ui/score_label.png';
 
+
+// Handler for image load errors - still counts toward total so loading doesn't get stuck
+function handleImageError(e) {
+    console.warn('Image failed to load:', e.target ? e.target.src : 'unknown');
+    checkImagesLoaded(); // Count it anyway so loading doesn't freeze
+}
+
 // Loading state
 let imagesLoaded = 0;
 const totalImages = 33; // Increased to 33 to account for loadingBgImage
