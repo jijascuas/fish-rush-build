@@ -21,3 +21,5 @@ _agents
 brain
 tmp
 pass.txt
+local.properties
+android/local.properties

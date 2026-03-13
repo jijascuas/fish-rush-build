@@ -61,31 +61,27 @@ async function hideBanner() {
 initAds();
 
 // --- Mobile App State Management ---
+let isAppInBackground = false;
 if (window.Capacitor) {
     const { App } = window.Capacitor.Plugins;
     
     App.addListener('appStateChange', ({ isActive }) => {
         if (isActive) {
-            console.log("App became active, checking music...");
+            console.log("App active");
+            isAppInBackground = false;
+            // Resume music if we were in a game
             if (gameRunning && !gameOver && !isDying) {
                 soundSystem.playMusic();
             }
         } else {
-            console.log("App went to background, pausing game logic");
-            // Pause game logic if it's currently running
-            if (gameRunning && !gameOver && !isDying) {
-                gameRunning = false;
-                // We'll resume when it becomes active again if needed, 
-                // but let's just make it stay paused until next user action if desired.
-                // For now, let's just stop the loop from updating logic.
-            }
+            console.log("App background");
+            isAppInBackground = true;
             soundSystem.music.pause();
         }
     });
 
-    // Handle back button on Android
     App.addListener('backButton', () => {
-        if (gameRunning) {
+        if (gameRunning && !gameOver) {
             backToMenu();
         } else if (startScreen.style.display !== 'none') {
             App.exitApp();
@@ -174,19 +170,9 @@ class GameSoundSystem {
         // Ensure music stays playing and doesn't get stuck
         this.music.addEventListener('play', () => { 
             this.isMusicPlaying = true;
-            console.log("Music started playing");
         });
         this.music.addEventListener('pause', () => { 
             this.isMusicPlaying = false;
-            console.log("Music paused");
-        });
-        this.music.addEventListener('error', (e) => { 
-            console.error("Music Error:", this.music.error); 
-        });
-        this.music.addEventListener('ended', () => {
-            if (this.music.loop) {
-                this.music.play();
-            }
         });
     }
 
@@ -382,30 +368,12 @@ let currentVolume = 5;
 // High score tracking
 let highScore = parseInt(localStorage.getItem('fishRushHighScore') || '0');
 
-// Number images for Game Over screen and Volume UI
 const numberImages = [];
 const numberUrls = Array.from({length: 10}, (_, i) => `assets/numbers/${i}.png`);
-
 numberUrls.forEach((url, i) => {
     numberImages[i] = new Image();
     numberImages[i].src = url;
 });
-
-// Preload assets
-const backgroundImage = new Image();
-backgroundImage.src = 'assets/background.png';
-
-const loadingBgImage = new Image();
-loadingBgImage.src = 'assets/loading_bg.png';
-loadingBgImage.onload = () => {
-    loadingScreen.classList.add('bg-ready');
-    soundSystem.playIntroSound();
-    checkImagesLoaded();
-};
-loadingBgImage.onerror = checkImagesLoaded;
-
-const heartIconImage = new Image();
-heartIconImage.src = 'assets/ui/heart_icon.png';
 
 const clownfishImages = [];
 const clownfishUrls = Array.from({length: 6}, (_, i) => `assets/fish/${i}.png`);
@@ -413,6 +381,23 @@ clownfishUrls.forEach((url, i) => {
     clownfishImages[i] = new Image();
     clownfishImages[i].src = url;
 });
+
+const hitImages = [];
+const hitUrls = Array.from({length: 6}, (_, i) => `assets/hits/${i}.png`);
+hitUrls.forEach((url, i) => {
+    hitImages[i] = new Image();
+    hitImages[i].src = url;
+});
+
+// Other single images
+const backgroundImage = new Image();
+backgroundImage.src = 'assets/background.png';
+
+const loadingBgImage = new Image();
+loadingBgImage.src = 'assets/loading_bg.png';
+
+const heartIconImage = new Image();
+heartIconImage.src = 'assets/ui/heart_icon.png';
 
 const sharkImage = new Image();
 sharkImage.src = 'assets/shark.png';
@@ -434,13 +419,6 @@ heartImage.src = 'assets/obstacles/heart.png';
 
 const shieldBubbleImage = new Image();
 shieldBubbleImage.src = 'assets/ui/bubble_shield.png';
-
-const hitImages = [];
-const hitUrls = Array.from({length: 6}, (_, i) => `assets/hits/${i}.png`);
-hitUrls.forEach((url, i) => {
-    hitImages[i] = new Image();
-    hitImages[i].src = url;
-});
 
 const scoreLabelImage = new Image();
 scoreLabelImage.src = 'assets/ui/score_label.png';
@@ -507,10 +485,11 @@ function switchScreen(newScreen) {
     }
 }
 
-function handleImageError(e) {
-    console.error("Asset failed to load:", e.target.src);
+loadingBgImage.onload = () => {
+    loadingScreen.classList.add('bg-ready');
     checkImagesLoaded();
-}
+};
+loadingBgImage.onerror = checkImagesLoaded;
 
 [backgroundImage, heartIconImage, sharkImage, seashellImage, fishhookImage, shipwheelImage, bubbleShieldImage, heartImage, shieldBubbleImage, scoreLabelImage, ...clownfishImages, ...numberImages, ...hitImages].forEach(img => {
     img.onload = checkImagesLoaded;
@@ -1025,7 +1004,7 @@ function drawUI() {
 }
 
 function updateGame(deltaTime) {
-    if (!gameRunning || gameOver || isDying) return;
+    if (!gameRunning || gameOver || isDying || isAppInBackground) return;
     if (performance.now() > nextObstacleTime) {
         generateObstacleWave();
         nextObstacleTime = performance.now() + obstacleFrequency;
