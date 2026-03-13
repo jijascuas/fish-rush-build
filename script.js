@@ -71,15 +71,21 @@ if (window.Capacitor) {
                 soundSystem.playMusic();
             }
         } else {
-            console.log("App went to background");
-            // Optionally pause here if desired, but for music we usually just let OS handle or pause
+            console.log("App went to background, pausing game logic");
+            // Pause game logic if it's currently running
+            if (gameRunning && !gameOver && !isDying) {
+                gameRunning = false;
+                // We'll resume when it becomes active again if needed, 
+                // but let's just make it stay paused until next user action if desired.
+                // For now, let's just stop the loop from updating logic.
+            }
+            soundSystem.music.pause();
         }
     });
 
     // Handle back button on Android
     App.addListener('backButton', () => {
         if (gameRunning) {
-            // Optional: Pause menu or back to menu
             backToMenu();
         } else if (startScreen.style.display !== 'none') {
             App.exitApp();
@@ -201,7 +207,9 @@ class GameSoundSystem {
         }
         this.music.loop = true;
 
+        // CRITICAL: Only play if paused AND not already trying to play
         if (this.music.paused) {
+            console.log("playMusic() triggered");
             const playPromise = this.music.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
@@ -801,19 +809,6 @@ function startGame() {
     shieldHitsRemaining = 0;
     sharkX = -canvas.width;
     sharkEntranceComplete = false;
-
-    // Show instructions and hide after 5 seconds
-    const instructions = document.getElementById('instructions');
-    if (instructions) {
-        instructions.style.display = 'block';
-        instructions.style.opacity = '1';
-        setTimeout(() => {
-            instructions.style.opacity = '0';
-            setTimeout(() => {
-                instructions.style.display = 'none';
-            }, 500);
-        }, 5000);
-    }
 
     soundSystem.setPlaybackRate(1.0);
     soundSystem.playMusic();
