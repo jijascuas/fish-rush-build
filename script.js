@@ -20,13 +20,40 @@ async function showInterstitial() {
     if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
         const { AdMob } = window.Capacitor.Plugins;
         try {
-            // Test Ad ID for Interstitial
             await AdMob.prepareInterstitial({
                 adId: 'ca-app-pub-3940256099942544/1033173712',
             });
             await AdMob.showInterstitial();
         } catch (e) {
-            console.warn("AdMob Show Interstitial Error (common in web/emulator):", e.message);
+            console.warn("AdMob Show Interstitial Error:", e.message);
+        }
+    }
+}
+
+async function showBanner() {
+    if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
+        const { AdMob } = window.Capacitor.Plugins;
+        try {
+            await AdMob.showBanner({
+                adId: 'ca-app-pub-3940256099942544/6300978111', // Test Ad ID
+                adSize: 'BANNER',
+                position: 'BOTTOM_CENTER',
+                margin: 0,
+                isTesting: true
+            });
+        } catch (e) {
+            console.warn("AdMob Show Banner Error:", e.message);
+        }
+    }
+}
+
+async function hideBanner() {
+    if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
+        const { AdMob } = window.Capacitor.Plugins;
+        try {
+            await AdMob.hideBanner();
+        } catch (e) {
+            console.warn("AdMob Hide Banner Error:", e.message);
         }
     }
 }
@@ -391,6 +418,15 @@ function switchScreen(newScreen) {
     // Show only the requested one as a flex container
     if (newScreen) {
         newScreen.style.display = 'flex';
+        // Show banner on menu screens
+        if (newScreen === startScreen || newScreen === extrasScreen || newScreen === optionsScreen || newScreen === rankingScreen) {
+            showBanner();
+        } else {
+            hideBanner();
+        }
+    } else {
+        // null means game starts
+        hideBanner();
     }
 }
 

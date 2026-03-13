@@ -37,6 +37,7 @@ canvas.game-active {
     z-index: 100; /* High z-index to cover everything */
     background: #0a3d62;
     padding: 20px;
+    padding-bottom: 70px; /* Space for AdMob banner */
     box-sizing: border-box;
     opacity: 1;
     transition: opacity 0.3s ease-in-out;
