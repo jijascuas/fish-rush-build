@@ -21,7 +21,7 @@ async function showInterstitial() {
         const { AdMob } = window.Capacitor.Plugins;
         try {
             await AdMob.prepareInterstitial({
-                adId: 'ca-app-pub-3940256099942544/1033173712',
+                adId: 'ca-app-pub-4159023709825629/4795233193',
             });
             await AdMob.showInterstitial();
         } catch (e) {
@@ -35,11 +35,11 @@ async function showBanner() {
         const { AdMob } = window.Capacitor.Plugins;
         try {
             await AdMob.showBanner({
-                adId: 'ca-app-pub-3940256099942544/6300978111', // Test Ad ID
+                adId: 'ca-app-pub-4159023709825629/8163157205',
                 adSize: 'BANNER',
                 position: 'BOTTOM_CENTER',
                 margin: 0,
-                isTesting: true
+                isTesting: false
             });
         } catch (e) {
             console.warn("AdMob Show Banner Error:", e.message);
@@ -59,6 +59,35 @@ async function hideBanner() {
 }
 
 initAds();
+
+// --- Mobile App State Management ---
+if (window.Capacitor) {
+    const { App } = window.Capacitor.Plugins;
+    
+    App.addListener('appStateChange', ({ isActive }) => {
+        if (isActive) {
+            console.log("App became active, checking music...");
+            if (gameRunning && !gameOver && !isDying) {
+                soundSystem.playMusic();
+            }
+        } else {
+            console.log("App went to background");
+            // Optionally pause here if desired, but for music we usually just let OS handle or pause
+        }
+    });
+
+    // Handle back button on Android
+    App.addListener('backButton', () => {
+        if (gameRunning) {
+            // Optional: Pause menu or back to menu
+            backToMenu();
+        } else if (startScreen.style.display !== 'none') {
+            App.exitApp();
+        } else {
+            backToMenu();
+        }
+    });
+}
 // -------------------------
 const loadingScreen = document.getElementById('loadingScreen');
 const startScreen = document.getElementById('startScreen');
@@ -128,18 +157,31 @@ class GameSoundSystem {
         this.music.src = 'assets/music.mp3';
         this.music.loop = true;
         this.music.preload = 'auto';
-        this.music.load(); // Explicitly start loading
+        this.music.autoplay = false;
         
         this.introSound = new Audio();
         this.introSound.src = 'assets/intro.wav';
         this.introSound.preload = 'auto';
-        this.introSound.load();
 
         this.isMusicPlaying = false;
         
-        this.music.addEventListener('play', () => { this.isMusicPlaying = true; });
-        this.music.addEventListener('pause', () => { this.isMusicPlaying = false; });
-        this.music.addEventListener('error', (e) => { console.error("Music Error:", e); });
+        // Ensure music stays playing and doesn't get stuck
+        this.music.addEventListener('play', () => { 
+            this.isMusicPlaying = true;
+            console.log("Music started playing");
+        });
+        this.music.addEventListener('pause', () => { 
+            this.isMusicPlaying = false;
+            console.log("Music paused");
+        });
+        this.music.addEventListener('error', (e) => { 
+            console.error("Music Error:", this.music.error); 
+        });
+        this.music.addEventListener('ended', () => {
+            if (this.music.loop) {
+                this.music.play();
+            }
+        });
     }
 
     init() {
@@ -153,13 +195,21 @@ class GameSoundSystem {
         if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
         this.music.volume = this.musicVolume;
         
-        // Only trigger play if not already playing to prevent restarting
+        // Ensure proper source and loop
+        if (!this.music.src.includes('assets/music.mp3')) {
+            this.music.src = 'assets/music.mp3';
+        }
+        this.music.loop = true;
+
         if (this.music.paused) {
-            this.music.play().then(() => {
-                console.log("Music playing");
-            }).catch(e => {
-                console.warn("Music play delayed by browser policy:", e.message);
-            });
+            const playPromise = this.music.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log("Music playing successfully");
+                }).catch(e => {
+                    console.warn("Music play blocked/failed:", e.message);
+                });
+            }
         }
     }
 
@@ -397,33 +447,31 @@ function checkImagesLoaded() {
     imagesLoaded++;
     if (imagesLoaded >= totalImages) {
         const elapsedTime = Date.now() - loadingStartTime;
-        const remainingTime = Math.max(0, 4000 - elapsedTime);
+        const remainingTime = Math.max(0, 3000 - elapsedTime);
         
         setTimeout(() => {
-            // 1. Prepare start menu behind
+            // Prepare start menu
             startScreen.style.display = 'flex';
             drawInitialState();
             soundSystem.setVolume(currentVolume / 10);
 
-            // 2. Show the "TOUCH TO START" message
             const touchMsg = document.getElementById('touchToStart');
             if (touchMsg) touchMsg.style.display = 'block';
 
-            // 3. Define the interaction to actually enter the game
             const enterGame = () => {
                 loadingScreen.style.opacity = '0';
                 setTimeout(() => {
                     switchScreen(startScreen);
                     loadingScreen.style.opacity = '1';
                     if (touchMsg) touchMsg.style.display = 'none';
+                    // Play intro sound on first click to unlock audio
+                    soundSystem.playIntroSound();
                 }, 300);
                 
-                // Cleanup listeners
                 window.removeEventListener('click', enterGame);
                 window.removeEventListener('touchstart', enterGame);
             };
 
-            // 4. Wait for user interaction
             window.addEventListener('click', enterGame);
             window.addEventListener('touchstart', enterGame);
         }, remainingTime);
@@ -758,8 +806,12 @@ function startGame() {
     const instructions = document.getElementById('instructions');
     if (instructions) {
         instructions.style.display = 'block';
+        instructions.style.opacity = '1';
         setTimeout(() => {
-            instructions.style.display = 'none';
+            instructions.style.opacity = '0';
+            setTimeout(() => {
+                instructions.style.display = 'none';
+            }, 500);
         }, 5000);
     }
 

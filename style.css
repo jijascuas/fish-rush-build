@@ -22,7 +22,9 @@ canvas {
     max-height: 100%;
     width: 100vw;
     height: 100vh;
-    object-fit: contain; /* Keeps 4:3 but fills height/width */
+    object-fit: contain; /* Keeps 4:3 but fills height/width safely */
+    image-rendering: pixelated; /* Sharpness on mobile */
+    image-rendering: crisp-edges;
     z-index: 10;
     opacity: 0;
     transition: opacity 0.5s ease-in;
@@ -47,7 +49,7 @@ canvas.game-active {
     background-size: cover;
     background-position: center;
     padding: 20px;
-    padding-bottom: 90px; /* Space for AdMob banner */
+    padding-bottom: env(safe-area-inset-bottom, 20px); /* Dynamic safe area */
     box-sizing: border-box;
     opacity: 1;
     transition: opacity 0.3s ease-in-out;
@@ -726,8 +728,9 @@ canvas.game-active {
     border: 3px solid rgba(77, 166, 255, 0.5);
     z-index: 2000;
     pointer-events: none;
-    text-align: center;
     display: none; /* Controlled by JS */
     width: 80%;
     max-width: 500px;
+    transition: opacity 0.5s ease;
+    opacity: 0;
 }
