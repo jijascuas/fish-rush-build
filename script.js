@@ -123,10 +123,23 @@ class GameSoundSystem {
     constructor() {
         this.ctx = null;
         this.musicVolume = 0.5;
-        this.sfxVolume = 0.5; // Fixed volume for "glup" bubble sounds
-        this.music = new Audio('assets/music.mp3');
+        this.sfxVolume = 0.5;
+        this.music = new Audio();
+        this.music.src = 'assets/music.mp3';
         this.music.loop = true;
-        this.introSound = new Audio('assets/intro.wav');
+        this.music.preload = 'auto';
+        this.music.load(); // Explicitly start loading
+        
+        this.introSound = new Audio();
+        this.introSound.src = 'assets/intro.wav';
+        this.introSound.preload = 'auto';
+        this.introSound.load();
+
+        this.isMusicPlaying = false;
+        
+        this.music.addEventListener('play', () => { this.isMusicPlaying = true; });
+        this.music.addEventListener('pause', () => { this.isMusicPlaying = false; });
+        this.music.addEventListener('error', (e) => { console.error("Music Error:", e); });
     }
 
     init() {
@@ -137,9 +150,16 @@ class GameSoundSystem {
 
     playMusic() {
         this.init();
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
         this.music.volume = this.musicVolume;
-        this.music.play().catch(console.error);
+        if (!this.isMusicPlaying) {
+            this.music.play().then(() => {
+                console.log("Music started successfully");
+            }).catch(e => {
+                console.error("Music Playback Blocked/Failed:", e);
+                // Try again on next interaction if needed
+            });
+        }
     }
 
     stopMusic() {

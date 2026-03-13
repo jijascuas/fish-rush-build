@@ -4,40 +4,44 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    width: 100vw;
     height: 100vh;
-    background-color: #0a3d62;
+    background-color: #051e30;
     overflow: hidden;
     touch-action: none;
     font-family: 'Arial', sans-serif;
 }
 canvas {
-    border: 3px solid #1e3a5f;
+    border: none;
     background-color: #0c5476;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-    max-width: 100vw;
-    max-height: 100vh;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
     object-fit: contain;
-    opacity: 0; /* Hide canvas until game starts */
+    aspect-ratio: 4 / 3;
+    opacity: 0;
     transition: opacity 0.5s ease-in;
 }
 canvas.game-active {
-    opacity: 1; /* Show when game starts */
+    opacity: 1;
 }
 .screen {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    display: flex; /* Changed from none to show loading screen by default */
+    display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     color: white;
-    z-index: 100; /* High z-index to cover everything */
+    z-index: 100;
     background: #0a3d62;
     padding: 20px;
-    padding-bottom: 70px; /* Space for AdMob banner */
+    padding-bottom: 70px;
     box-sizing: border-box;
     opacity: 1;
     transition: opacity 0.3s ease-in-out;
@@ -45,6 +49,7 @@ canvas.game-active {
 .screen[style*="display: none"] {
     opacity: 0;
     pointer-events: none;
+    display: none !important; /* Force hide to prevent layout issues */
 }
 #loadingScreen {
     z-index: 110;
@@ -550,30 +555,6 @@ canvas.game-active {
     .title-image {
         max-width: 70%;
         margin-bottom: 15px;
-    }
-}
-
-/* Auto-rotate game in portrait mode */
-@media screen and (orientation: portrait) {
-    body {
-        width: 100vh;
-        height: 100vw;
-        overflow: hidden;
-        transform: rotate(90deg);
-        transform-origin: top left;
-        position: absolute;
-        top: 0;
-        left: 100%;
-    }
-    
-    canvas {
-        width: 100vh !important;
-        height: 100vw !important;
-    }
-    
-    .screen {
-        width: 100vh !important;
-        height: 100vw !important;
     }
 }
 
