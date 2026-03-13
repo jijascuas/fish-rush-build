@@ -6,21 +6,24 @@ body {
     align-items: center;
     width: 100vw;
     height: 100vh;
-    background-color: #051e30;
+    background: #0a3d62; /* Main game color to avoid "back background" flicker */
+    background-image: url('assets/background.png');
+    background-size: cover;
+    background-position: center;
     overflow: hidden;
     touch-action: none;
     font-family: 'Arial', sans-serif;
 }
 canvas {
     border: none;
-    background-color: #0c5476;
-    box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
+    background-color: transparent;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     max-width: 100%;
     max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    aspect-ratio: 4 / 3;
+    width: 100vw;
+    height: 100vh;
+    object-fit: contain; /* Keeps 4:3 but fills height/width */
+    z-index: 10;
     opacity: 0;
     transition: opacity 0.5s ease-in;
 }
@@ -35,13 +38,16 @@ canvas.game-active {
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: center; /* Center but keep padding */
     align-items: center;
     color: white;
     z-index: 100;
-    background: #0a3d62;
+    background: rgba(10, 61, 98, 0.9);
+    background-image: url('assets/background.png');
+    background-size: cover;
+    background-position: center;
     padding: 20px;
-    padding-bottom: 70px;
+    padding-bottom: 90px; /* Space for AdMob banner */
     box-sizing: border-box;
     opacity: 1;
     transition: opacity 0.3s ease-in-out;
@@ -700,4 +706,25 @@ canvas.game-active {
     0% { transform: scale(1); opacity: 0.7; }
     50% { transform: scale(1.1); opacity: 1; }
     100% { transform: scale(1); opacity: 0.7; }
+}
+
+#instructions {
+    position: fixed;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    left: 50%;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px 40px;
+    border-radius: 30px;
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 2px 2px 4px #000;
+    border: 3px solid rgba(77, 166, 255, 0.5);
+    z-index: 2000;
+    pointer-events: none;
+    text-align: center;
+    display: none; /* Controlled by JS */
+    width: 80%;
+    max-width: 500px;
 }

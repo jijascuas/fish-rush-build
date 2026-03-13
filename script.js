@@ -152,12 +152,13 @@ class GameSoundSystem {
         this.init();
         if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
         this.music.volume = this.musicVolume;
-        if (!this.isMusicPlaying) {
+        
+        // Only trigger play if not already playing to prevent restarting
+        if (this.music.paused) {
             this.music.play().then(() => {
-                console.log("Music started successfully");
+                console.log("Music playing");
             }).catch(e => {
-                console.error("Music Playback Blocked/Failed:", e);
-                // Try again on next interaction if needed
+                console.warn("Music play delayed by browser policy:", e.message);
             });
         }
     }
@@ -541,7 +542,6 @@ appearanceButtons.forEach((button, index) => {
 // Helper to get relative coordinates, accounting for CSS rotation
 function getMousePos(e) {
     const rect = canvas.getBoundingClientRect();
-    const isPortrait = window.innerHeight > window.innerWidth;
     
     let clientX, clientY;
     if (e.touches) {
@@ -552,18 +552,9 @@ function getMousePos(e) {
         clientY = e.clientY;
     }
 
-    if (isPortrait) {
-        // When rotated 90deg: 
-        // Physical X becomes Canvas Y
-        // Physical Y becomes Canvas (Width - X)
-        const x = (clientY - rect.top) * (canvas.width / rect.height);
-        const y = (rect.right - clientX) * (canvas.height / rect.width);
-        return { x, y };
-    } else {
-        const x = (clientX - rect.left) * (canvas.width / rect.width);
-        const y = (clientY - rect.top) * (canvas.height / rect.height);
-        return { x, y };
-    }
+    const x = (clientX - rect.left) * (canvas.width / rect.width);
+    const y = (clientY - rect.top) * (canvas.height / rect.height);
+    return { x, y };
 }
 
 canvas.addEventListener('touchstart', e => {
@@ -762,6 +753,15 @@ function startGame() {
     shieldHitsRemaining = 0;
     sharkX = -canvas.width;
     sharkEntranceComplete = false;
+
+    // Show instructions and hide after 5 seconds
+    const instructions = document.getElementById('instructions');
+    if (instructions) {
+        instructions.style.display = 'block';
+        setTimeout(() => {
+            instructions.style.display = 'none';
+        }, 5000);
+    }
 
     soundSystem.setPlaybackRate(1.0);
     soundSystem.playMusic();
@@ -1000,10 +1000,8 @@ function updateGame(deltaTime) {
                     obstacleFrequency = Math.max(500, obstacleFrequency * 0.95);
                     nextSpeedIncrease += 20;
                     
-                    // Adapt music pitch/speed to game difficulty
-                    const baseSpeed = 9;
-                    const newRate = Math.min(2.0, speed / baseSpeed);
-                    soundSystem.setPlaybackRate(newRate);
+                    // Removed dynamic pitch shift as it causes restarts on some Android devices
+                    // soundSystem.setPlaybackRate(newRate);
                 }
             }
         }
