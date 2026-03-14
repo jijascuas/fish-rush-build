@@ -596,17 +596,27 @@ const setupButton = (id, handler) => {
     const btn = document.getElementById(id);
     if (!btn) return;
     
-    // Use both click and touchstart for best mobile response
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
+    let lastTime = 0;
+    const trigger = (e) => {
+        const now = Date.now();
+        if (now - lastTime < 500) return; // Prevent double trigger within 500ms
+        lastTime = now;
+        
         soundSystem.playPopSound();
         handler();
+    };
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        trigger(e);
     });
+    
     btn.addEventListener('touchstart', (e) => {
-        // Don't prevent default here to allow click to fire if needed
-        soundSystem.playPopSound();
+        // e.preventDefault(); // Don't prevent default so focus etc works, but we act immediately
+        trigger(e);
     }, { passive: true });
 };
+
 
 setupButton('startButton', startGame);
 setupButton('extrasButton', showExtras);

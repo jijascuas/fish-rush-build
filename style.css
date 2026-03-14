@@ -43,12 +43,19 @@ canvas.game-active {
     left: 0;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    color: white;
+    z-index: 1000; /* Much higher to be above everything */
     padding: env(safe-area-inset-top, 40px) 20px env(safe-area-inset-bottom, 20px) 20px;
     box-sizing: border-box;
     opacity: 1;
     pointer-events: auto; 
     transition: opacity 0.3s ease-in-out;
 }
+
 
 
 
@@ -154,15 +161,15 @@ canvas.game-active {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    width: 24vmin;
-    height: 24vmin;
-    max-width: 130px;
-    max-height: 130px;
+    width: 18vmin; /* Slightly smaller to fit in a row */
+    height: 18vmin;
+    max-width: 95px;
+    max-height: 95px;
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s;
-    margin: 8px;
-    font-size: 14px;
+    margin: 5px;
+    font-size: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -174,7 +181,9 @@ canvas.game-active {
     text-align: center;
     background-color: transparent !important;
     pointer-events: auto !important;
+    z-index: 1001;
 }
+
 
 
 
@@ -522,15 +531,17 @@ canvas.game-active {
 /* Pyramid layout for start screen buttons - compact and centered */
 .start-buttons-container {
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* Horizontal row */
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap; /* Wrap if too many for narrow screens */
     width: 100%;
-    max-width: 600px;
+    max-width: 95%; /* Use more width for the row */
     padding: 0;
     box-sizing: border-box;
-    margin-bottom: 2vh;
+    gap: 1.5vmin; /* Tight but consistent gap */
 }
+
 
 .button-row {
     display: flex;
