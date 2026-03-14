@@ -1,20 +1,32 @@
+// --- Global Globals ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// --- Global Error Handler ---
+window.onerror = function(msg, url, lineNo, columnNo, error) {
+    console.error(`GLOBAL ERROR: ${msg} at ${url}:${lineNo}`);
+    // If the game is still loading, try to proceed anyway after 2 seconds
+    if (!loadingDone) {
+        setTimeout(proceedToGame, 2000);
+    }
+    return false;
+};
 
 // --- AdMob Integration ---
 async function initAds() {
     if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
         const { AdMob } = window.Capacitor.Plugins;
         try {
-            await AdMob.initialize({
-                requestTrackingAuthorization: true,
-            });
+            // Give the bridge a moment to stabilize
+            await new Promise(r => setTimeout(r, 1000));
+            await AdMob.initialize(); // Removed requestTrackingAuthorization which is for iOS ATT
             console.log("AdMob Initialized");
         } catch (e) {
             console.error("AdMob Init Error", e);
         }
     }
 }
+
 
 async function showInterstitial() {
     if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
@@ -58,7 +70,9 @@ async function hideBanner() {
     }
 }
 
-initAds();
+// Start Ads asynchronously
+setTimeout(initAds, 500);
+
 
 // --- Mobile App State Management ---
 let isAppInBackground = false;
@@ -119,7 +133,7 @@ const playerNameInput = document.getElementById('playerNameInput');
 const submitScoreButton = document.getElementById('submitScoreButton');
 const nameEntryBackButton = document.getElementById('nameEntryBackButton');
 
-// Firebase Configuration
+// --- Firebase Configuration ---
 const firebaseConfig = {
   projectId: "fish-rush-jijascuas",
   appId: "1:572420035953:web:096c8d3faefbf8bd57d2d0",
@@ -128,16 +142,34 @@ const firebaseConfig = {
   authDomain: "fish-rush-jijascuas.firebaseapp.com",
   messagingSenderId: "572420035953"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
 
-// Anonymous Sign In
-auth.onAuthStateChanged((user) => {
-    if (!user) {
-        auth.signInAnonymously().catch(console.error);
+let db = null;
+let auth = null;
+
+function initFirebase() {
+    if (typeof firebase !== 'undefined') {
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            auth = firebase.auth();
+            
+            auth.onAuthStateChanged((user) => {
+                if (!user) {
+                    auth.signInAnonymously().catch(e => console.error("Firebase Auth Error", e));
+                }
+            });
+            console.log("Firebase initialized");
+        } catch (e) {
+            console.error("Firebase Init Error", e);
+        }
+    } else {
+        console.warn("Firebase SDK not found. Offline mode active.");
     }
-});
+}
+
+// Call initFirebase early but safely
+setTimeout(initFirebase, 100);
+
 
 // Appearance buttons (6 appearances)
 const appearanceButtons = [
@@ -509,14 +541,16 @@ function handleImageError(e) {
     checkImagesLoaded();
 }
 
-// SAFETY NET: After 6 seconds, proceed no matter what.
+// SAFETY NET: After 7 seconds, proceed no matter what.
 // This handles cases where some onload/onerror events never fire in Android WebView.
 setTimeout(() => {
     if (!loadingDone) {
         console.warn(`[Loading] Timeout! Only ${imagesLoaded}/${totalImages} images loaded. Proceeding anyway.`);
+        if (loadingText) loadingText.innerHTML = "FINISHING LOADING...";
         proceedToGame();
     }
-}, 6000);
+}, 7000);
+
 
 // Global helper for clean screen switching
 function switchScreen(newScreen) {
@@ -742,6 +776,7 @@ async function fetchLeaderboard() {
     }
 
     try {
+        if (!db) throw new Error("Database not initialized");
         const snapshot = await db.collection('leaderboard')
             .orderBy('score', 'desc')
             .limit(100)
@@ -776,6 +811,7 @@ async function submitScore() {
     submitScoreButton.style.opacity = "0.5";
     
     try {
+        if (!auth || !db) throw new Error("Firebase not initialized");
         if (!auth.currentUser) {
             console.error("Auth: No current user authenticated.");
             // Try to sign in anonymously again if not ready
@@ -886,6 +922,7 @@ async function gameOverFunction() {
             try {
                 console.log("[Ranking] Checking global Top 100...");
                 const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2500));
+                if (!db) throw new Error("DB not ready");
                 const queryPromise = db.collection('leaderboard').orderBy('score', 'desc').limit(100).get();
                 
                 const snapshot = await Promise.race([queryPromise, timeoutPromise]);

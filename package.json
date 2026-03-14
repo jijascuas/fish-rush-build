@@ -10,7 +10,7 @@
     "@capacitor/core": "^6.0.0"
   },
   "scripts": {
-    "build": "powershell -Command \"if (Test-Path www) { Remove-Item -Recurse -Force www }; New-Item -ItemType Directory -Path www; Copy-Item index.html, script.js, style.css, privacy-policy-en.html www/; Copy-Item assets -Destination www/ -Recurse\"",
+    "build": "powershell -Command \"if (Test-Path www) { Remove-Item -Recurse -Force www }; New-Item -ItemType Directory -Path www; Copy-Item index.html, script.js, style.css, privacy-policy-en.html www/; Copy-Item js, assets -Destination www/ -Recurse\"",
     "assets": "npx @capacitor/assets generate --android",
     "sync": "npx cap sync",
     "test": "echo \"Error: no test specified\" && exit 1"
