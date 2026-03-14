@@ -591,37 +591,66 @@ const OBSTACLE_TYPES = [
     { name: 'bubble', damage: 0, color: '#a8e6cf', symbol: '💧', shield: true }
 ];
 
-// Event listeners
-[startButton, extrasButton, rankingButton, optionsButton, creditsButton, backButton, extrasBackButton, creditsBackButton, rankingBackButton, restartButton, menuButton, submitScoreButton, nameEntryBackButton, document.querySelector('.privacy-link')].forEach(btn => {
-    if (btn) btn.addEventListener('click', () => soundSystem.playPopSound());
+// Event listeners - Wrapped in safe checks to prevent crashes
+const setupButton = (id, handler) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    
+    // Use both click and touchstart for best mobile response
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        soundSystem.playPopSound();
+        handler();
+    });
+    btn.addEventListener('touchstart', (e) => {
+        // Don't prevent default here to allow click to fire if needed
+        soundSystem.playPopSound();
+    }, { passive: true });
+};
+
+setupButton('startButton', startGame);
+setupButton('extrasButton', showExtras);
+setupButton('optionsButton', showOptions);
+setupButton('creditsButton', showCredits);
+setupButton('rankingButton', showRanking);
+setupButton('restartButton', restartGame);
+setupButton('menuButton', backToMenu);
+setupButton('submitScoreButton', submitScore);
+
+setupButton('backButton', hideOptions);
+setupButton('extrasBackButton', hideExtras);
+setupButton('creditsBackButton', hideCredits);
+setupButton('rankingBackButton', hideRanking);
+setupButton('nameEntryBackButton', () => switchScreen(startScreen));
+
+if (volumeSlider) volumeSlider.addEventListener('input', updateVolume);
+
+// Generic pop sound for all buttons including those not in our list
+document.querySelectorAll('.button, .privacy-link').forEach(btn => {
+    if (btn) {
+        btn.addEventListener('click', () => {
+            if (!btn.id || !['startButton', 'extrasButton', 'optionsButton', 'creditsButton', 'rankingButton', 'restartButton', 'menuButton', 'submitScoreButton'].includes(btn.id)) {
+                soundSystem.playPopSound();
+            }
+        });
+    }
 });
 
-startButton.addEventListener('click', startGame);
-extrasButton.addEventListener('click', showExtras);
-optionsButton.addEventListener('click', showOptions);
-creditsButton.addEventListener('click', showCredits);
-backButton.addEventListener('click', hideOptions);
-extrasBackButton.addEventListener('click', hideExtras);
-creditsBackButton.addEventListener('click', hideCredits);
-rankingButton.addEventListener('click', showRanking);
-rankingBackButton.addEventListener('click', hideRanking);
-restartButton.addEventListener('click', restartGame);
-menuButton.addEventListener('click', backToMenu);
-volumeSlider.addEventListener('input', updateVolume);
-submitScoreButton.addEventListener('click', submitScore);
-nameEntryBackButton.addEventListener('click', () => switchScreen(startScreen));
 
 appearanceButtons.forEach((button, index) => {
-    button.addEventListener('click', () => {
-        const unlockReq = parseInt(button.getAttribute('data-unlock'));
-        if (highScore >= unlockReq) {
-            soundSystem.playPopSound();
-            selectedAppearance = index;
-            appearanceButtons.forEach(btn => btn.classList.remove('selected'));
-            button.classList.add('selected');
-        }
-    });
+    if (button) {
+        button.addEventListener('click', () => {
+            const unlockReq = parseInt(button.getAttribute('data-unlock') || '0');
+            if (highScore >= unlockReq) {
+                soundSystem.playPopSound();
+                selectedAppearance = index;
+                appearanceButtons.forEach(btn => btn && btn.classList.remove('selected'));
+                button.classList.add('selected');
+            }
+        });
+    }
 });
+
 
 // Helper to get relative coordinates, accounting for CSS rotation
 function getMousePos(e) {
@@ -806,13 +835,22 @@ async function submitScore() {
 function updateVolume() {
     currentVolume = parseInt(volumeSlider.value);
     volumeValue.innerHTML = '';
-    currentVolume.toString().split('').forEach(char => {
-        const img = document.createElement('img');
-        img.src = numberImages[parseInt(char)].src;
-        volumeValue.appendChild(img);
-    });
+    const volStr = currentVolume.toString();
+    for (const char of volStr) {
+        const d = parseInt(char);
+        if (numberImages[d] && numberImages[d].src) {
+            const img = document.createElement('img');
+            img.src = numberImages[d].src;
+            volumeValue.appendChild(img);
+        } else {
+            volumeValue.textContent = volStr;
+            break;
+        }
+    }
     soundSystem.setVolume(currentVolume / 10);
+    localStorage.setItem('fishRushVolume', currentVolume);
 }
+
 
 function backToMenu() {
     switchScreen(startScreen);

@@ -17,21 +17,22 @@ body {
 canvas {
     border: none;
     background-color: transparent;
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
     max-width: 100%;
     max-height: 100%;
     width: 100vw;
     height: 100vh;
-    object-fit: contain; /* Keeps 4:3 but fills height/width safely */
-    image-rendering: pixelated; /* Sharpness on mobile */
-    image-rendering: crisp-edges;
+    object-fit: contain;
+    image-rendering: auto;
     z-index: 10;
     opacity: 0;
     transition: opacity 0.5s ease-in;
+    pointer-events: none; /* Crucial: let events pass to screens when not in game */
 }
 canvas.game-active {
     opacity: 1;
+    pointer-events: auto; /* Enable interaction only when game starts */
 }
+
 .screen {
     position: fixed;
     top: 0;
@@ -44,15 +45,13 @@ canvas.game-active {
     align-items: center;
     color: white;
     z-index: 100;
-    background: rgba(10, 61, 98, 0.9);
-    background-image: url('assets/background.png');
-    background-size: cover;
-    background-position: center;
-    padding: env(safe-area-inset-top, 10px) 20px env(safe-area-inset-bottom, 10px) 20px;
+    padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 20px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 20px);
     box-sizing: border-box;
     opacity: 1;
+    pointer-events: auto; /* Ensure screens can be touched */
     transition: opacity 0.3s ease-in-out;
 }
+
 
 .screen[style*="display: none"] {
     opacity: 0;
@@ -67,9 +66,10 @@ canvas.game-active {
 }
 #startScreen {
     background: rgba(12, 84, 118, 0.7) url('assets/ui/start_screen.jpeg') center/cover no-repeat;
-    justify-content: flex-start;
-    padding-top: 20px;
+    justify-content: center; /* Center vertically overall */
+    gap: 1vh;
 }
+
 #extrasScreen {
     background: rgba(12, 84, 118, 0.85) url('assets/ui/extras_screen.jpeg') center/cover no-repeat;
 }
@@ -154,10 +154,10 @@ canvas.game-active {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
-    width: 25vmin;
-    height: 25vmin;
-    max-width: 120px;
-    max-height: 120px;
+    width: 20vmin;
+    height: 20vmin;
+    max-width: 110px;
+    max-height: 110px;
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s;
@@ -173,7 +173,10 @@ canvas.game-active {
     overflow: hidden;
     text-align: center;
     background-color: transparent !important;
+    pointer-events: auto !important;
 }
+
+
 
 /* Special styling for the PLAY button with new image */
 #startScreen #startButton {
@@ -522,11 +525,12 @@ canvas.game-active {
     align-items: center;
     justify-content: center;
     width: 100%;
-    max-width: 500px;
-    padding: 0 15px;
+    max-width: 600px;
+    padding: 0;
     box-sizing: border-box;
-    margin-top: 10px;
+    margin-bottom: 2vh;
 }
+
 .button-row {
     display: flex;
     justify-content: center;
@@ -536,17 +540,19 @@ canvas.game-active {
 }
 /* Title image styling - removed box-shadow and border-radius */
 .title-image {
-    max-width: 80%;
-    max-height: 35vh; 
+    max-width: 75%;
+    max-height: 30vh; 
     height: auto;
     width: auto;
-    margin-bottom: 2vh;
+    margin-top: 2vh;
+    margin-bottom: 1vh;
     display: block;
     margin-left: auto;
     margin-right: auto;
     z-index: 10;
     object-fit: contain;
 }
+
 
 @media (max-width: 480px) {
     #startScreen h1 {
