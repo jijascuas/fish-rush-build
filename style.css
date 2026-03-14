@@ -428,16 +428,24 @@ canvas.game-active {
 }
 
 #loadingText {
-    font-size: 32px;
-    margin-top: 50vh; 
-    color: #4da6ff;
-    text-shadow: 0 0 15px rgba(0, 0, 0, 0.9), 0 0 5px #fff;
+    font-size: min(8vw, 36px);
+    margin-top: 55vh; /* Positioned below the logo */
+    color: #ffffff;
+    text-shadow: 0 0 20px rgba(0, 0, 0, 0.9), 0 0 10px #4da6ff;
     font-weight: bold;
     z-index: 10000;
     text-transform: uppercase;
     letter-spacing: 2px;
     animation: fadeInOut 2s infinite;
 }
+
+#loadingText.ready {
+    color: #fff;
+    text-shadow: 0 0 15px #4da6ff, 0 0 30px #4da6ff;
+    animation: fadeInOut 1s infinite;
+    font-size: min(9vw, 42px);
+}
+
 
 @keyframes fadeInOut {
     0% { opacity: 0.4; transform: scale(0.95); }

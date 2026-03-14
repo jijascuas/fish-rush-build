@@ -188,16 +188,33 @@ window.addEventListener('DOMContentLoaded', () => {
     // Initial Loading logic: Wait 5 seconds, then allow tap to start
     console.log("[Loading] Starting 5s timer...");
     setTimeout(() => {
+        timerDone = true;
         if (loadingText) {
             loadingText.innerHTML = "TAP TO START";
-            console.log("[Loading] Ready for interaction");
+            loadingText.classList.add('ready');
+            console.log("[Loading] Timer done. Ready for interaction.");
         }
         
         if (loadingScreen) {
-            setupButton(loadingScreen, () => {
-                console.log("[Loading] Transitioning to menu");
-                proceedToGame(); 
-            });
+            const enterMenu = (e) => {
+                if (e) e.preventDefault();
+                
+                if (!imagesReady) {
+                    loadingText.innerHTML = "LOADING ASSETS...";
+                    console.log("[Loading] Assets not ready yet.");
+                    return;
+                }
+
+                console.log("[Loading] User tapped. Transitioning to menu...");
+                proceedToGame();
+                
+                loadingScreen.removeEventListener('pointerdown', enterMenu);
+                loadingScreen.removeEventListener('click', enterMenu);
+            };
+
+            loadingScreen.addEventListener('pointerdown', enterMenu, { passive: false });
+            loadingScreen.addEventListener('click', enterMenu);
+            loadingScreen.style.cursor = 'pointer';
         }
     }, 5000);
 });
@@ -522,10 +539,16 @@ scoreLabelImage.src = 'assets/ui/score_label.png';
 let imagesLoaded = 0;
 const totalImages = 33;
 let loadingDone = false;
-const loadingStartTime = Date.now();
+let imagesReady = false;
+let timerDone = false;
 
 function proceedToGame() {
     if (loadingDone) return; 
+    if (!imagesReady) {
+        console.log("[Loading] Still waiting for images...");
+        return;
+    }
+    
     loadingDone = true;
     console.log(`[Loading] Entering Menu.`);
     
@@ -538,7 +561,10 @@ function proceedToGame() {
 function checkImagesLoaded() {
     imagesLoaded++;
     if (imagesLoaded >= totalImages) {
-        proceedToGame();
+        imagesReady = true;
+        console.log("[Loading] All images ready.");
+        // We don't call proceedToGame here anymore, 
+        // we wait for the 5s timer + user tap.
     }
 }
 
@@ -554,7 +580,7 @@ function handleImageError(e) {
 
 // Global helper for clean screen switching
 function switchScreen(newScreen) {
-    const screens = [startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen];
+    const screens = [loadingScreen, startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen];
     
     // 1. Hide ALL screens first
     screens.forEach(s => {
