@@ -13,10 +13,6 @@
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     
-    <div id="loadingScreen" class="screen active">
-        <div id="loadingText">LOADING...</div>
-    </div>
-    
     <div id="startScreen" class="screen hidden">
         <img src="assets/ui/logo_main.png" class="title-image" alt="Fish Rush">
         <div class="start-buttons-container">
@@ -115,37 +111,5 @@
 
     <script src="capacitor.js"></script>
     <script src="script.js"></script>
-
-    <script>
-    (function() {
-        console.log("Nuclear fallback initiated");
-        var DELAY = 4000;
-        function forceShowMenu() {
-            console.log("forceShowMenu executing...");
-            if (typeof proceedToGame === 'function' && typeof loadingDone !== 'undefined' && !loadingDone) {
-                proceedToGame();
-                window._loadingForceDone = true;
-                return;
-            }
-            
-            // Re-check elements for direct fallback
-            var ls = document.getElementById('loadingScreen');
-            var ss = document.getElementById('startScreen');
-            if (ls) {
-                ls.style.setProperty('display', 'none', 'important');
-                ls.style.setProperty('opacity', '0', 'important');
-            }
-            if (ss) {
-                ss.style.setProperty('display', 'flex', 'important');
-                ss.style.setProperty('opacity', '1', 'important');
-                ss.style.setProperty('pointer-events', 'auto', 'important');
-            }
-            window._loadingForceDone = true;
-            if (typeof loadingDone !== 'undefined') { loadingDone = true; }
-        }
-        setTimeout(forceShowMenu, DELAY);
-        setTimeout(forceShowMenu, 6500);
-    })();
-    </script>
 </body>
 </html>

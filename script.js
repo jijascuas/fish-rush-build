@@ -145,6 +145,18 @@ function initElements() {
     leaderboardList = document.getElementById('leaderboardList');
     playerNameInput = document.getElementById('playerNameInput');
     submitScoreButton = document.getElementById('submitScoreButton');
+
+    // NUCLEAR REMOVAL: Hide loading screen immediately upon element discovery
+    if (loadingScreen) {
+        loadingScreen.style.setProperty('display', 'none', 'important');
+        loadingScreen.style.setProperty('opacity', '0', 'important');
+        loadingScreen.style.setProperty('visibility', 'hidden', 'important');
+    }
+    if (startScreen) {
+        startScreen.style.setProperty('display', 'flex', 'important');
+        startScreen.style.setProperty('opacity', '1', 'important');
+        startScreen.style.setProperty('pointer-events', 'auto', 'important');
+    }
 }
 
 // Initialize immediately but also in DOMContentLoaded just in case
@@ -201,11 +213,8 @@ function initializeApplication() {
         initElements();
         bindEvents();
         
-        // Finalize styles
-        const ls = document.getElementById('loadingScreen');
-        if (ls && window._loadingForceDone) {
-            ls.style.display = 'none';
-        }
+        // Immediately show the menu regardless of image status
+        switchScreen(startScreen);
     } catch (e) {
         console.error("[Startup] Critical Error during init:", e);
     }
@@ -540,35 +549,23 @@ scoreLabelImage.src = 'assets/ui/score_label.png';
 // Even if onload/onerror never fires (common in Android WebViews), the
 // 6-second timeout will kick in and proceed anyway.
 
+// Image loading system remains for assets, but no longer blocks the app
 let imagesLoaded = 0;
 const totalImages = 33;
-let loadingDone = false;
-let imagesReady = false;
-let timerDone = false;
+let loadingDone = true; // Always done
+let imagesReady = true; // Pretend ready
+let timerDone = true;   // Always done
 
 function proceedToGame() {
-    if (loadingDone) return;
-    loadingDone = true;
-    imagesReady = true;
-    console.log('[Loading] proceedToGame() called. Forcing menu open.');
-
-    // Use switchScreen for consistency and proper Ad handling
+    // Already in menu, just ensure it's visible
     switchScreen(startScreen);
-
-    try { drawInitialState(); } catch(e) { console.warn('[Loading] drawInitialState error:', e); }
-    try { if (volumeSlider) updateVolume(); } catch(e) {}
+    try { drawInitialState(); } catch(e) {}
 }
 
 function checkImagesLoaded() {
-    // Also update loading text progress if desired
-    if (loadingText) {
-        loadingText.innerText = `LOADING... ${Math.round((imagesLoaded/totalImages)*100)}%`;
-    }
     imagesLoaded++;
     if (imagesLoaded >= totalImages) {
-        imagesReady = true;
-        console.log('[Loading] All images counted: ' + imagesLoaded);
-        if (timerDone && !loadingDone) proceedToGame();
+        console.log('[Loading] Assets ready.');
     }
 }
 
