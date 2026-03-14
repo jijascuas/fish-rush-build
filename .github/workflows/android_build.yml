@@ -1,5 +1,4 @@
 name: Build Android APK & AAB
-
 on:
   push:
     branches: [ main, master ]
@@ -13,7 +12,6 @@ jobs:
       contents: write
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -44,7 +42,6 @@ jobs:
               -keypass android \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -dname "CN=FishRush Debug,O=FishRush,C=ES"
-            
             cp android/app/debug.keystore ~/.android/debug.keystore
             
             git config --global user.name "GitHub Actions"
@@ -54,34 +51,36 @@ jobs:
             git push || true
           fi
           echo "=== SHA-1 FINGERPRINT (Use this for Firebase) ==="
-          keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:" || echo "SHA1 retrieval failed"
+          keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
           echo "================================================="
 
       - name: Install Dependencies
-        run: npm install --no-audit --no-fund
+        run: npm install
 
-      - name: Build Web Assets (Manual)
+      - name: Build Web Assets
         run: |
-          rm -rf www
           mkdir -p www
           cp index.html script.js style.css privacy-policy-en.html www/
           cp -r assets www/ || true
           cp -r js www/ || true
-          ls -la www/
 
       - name: Capacitor Sync
-        run: npx cap sync android --verbose
+        shell: bash
+        run: |
+          # Icons PNGs are already committed to git - no need to regenerate.
+          # Just run cap sync to copy web assets + committed icons into the Android project.
+          npx cap sync android
 
       - name: Build Android APK (Debug)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug -x lint -x test --console=plain
+          ./gradlew assembleDebug
 
       - name: Build Android App Bundle (Release)
         run: |
           cd android
-          ./gradlew bundleRelease -x lint -x test --console=plain
+          ./gradlew bundleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -100,6 +99,3 @@ jobs:
         with:
           name: debug-keystore
           path: android/app/debug.keystore
-
-
-
