@@ -48,7 +48,11 @@ async function showInterstitial() {
 }
 
 async function showBanner() {
-    if (!adMobInitialized || !window.Capacitor) return;
+    console.log("[AdMob] showBanner() called");
+    if (!adMobInitialized || !window.Capacitor) {
+        console.warn("[AdMob] Cannot show banner: not initialized.");
+        return;
+    }
     try {
         const { AdMob } = window.Capacitor.Plugins;
         if (!AdMob) return;
@@ -59,6 +63,7 @@ async function showBanner() {
             margin: 0,
             isTesting: false
         });
+        console.log("[AdMob] Banner shown successfully");
     } catch (e) {
         console.warn("[AdMob] Banner Show Error:", e.message);
     }
@@ -202,11 +207,11 @@ function initializeApplication() {
         console.error("[Startup] Critical Error during init:", e);
     }
     
-    // Non-critical services with delays
+    // Non-critical services with shorter delays
     setTimeout(() => {
         initFirebase();
         initAds();
-    }, 500);
+    }, 100);
 }
 
 // Execute on multiple triggers for maximum safety
@@ -544,31 +549,18 @@ function proceedToGame() {
     imagesReady = true;
     console.log('[Loading] proceedToGame() called. Forcing menu open.');
 
-    // Direct DOM manipulation — more reliable than class toggling
-    const ls = document.getElementById('loadingScreen');
-    const ss = document.getElementById('startScreen');
-
-    if (ls) {
-        ls.style.display = 'none';
-        ls.style.opacity = '0';
-        ls.style.pointerEvents = 'none';
-        ls.classList.remove('active');
-        ls.classList.add('hidden');
-    }
-
-    if (ss) {
-        ss.style.display = 'flex';
-        ss.style.opacity = '1';
-        ss.style.pointerEvents = 'auto';
-        ss.classList.remove('hidden');
-        ss.classList.add('active');
-    }
+    // Use switchScreen for consistency and proper Ad handling
+    switchScreen(startScreen);
 
     try { drawInitialState(); } catch(e) { console.warn('[Loading] drawInitialState error:', e); }
     try { if (volumeSlider) updateVolume(); } catch(e) {}
 }
 
 function checkImagesLoaded() {
+    // Also update loading text progress if desired
+    if (loadingText) {
+        loadingText.innerText = `LOADING... ${Math.round((imagesLoaded/totalImages)*100)}%`;
+    }
     imagesLoaded++;
     if (imagesLoaded >= totalImages) {
         imagesReady = true;
@@ -598,31 +590,23 @@ setTimeout(function() {
 function switchScreen(newScreen) {
     const screens = [loadingScreen, startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen];
     
-    // 1. Hide ALL screens first using direct style
+    // 1. Hide ALL screens first using forced styles to override any "!important" fallbacks
     screens.forEach(s => {
         if (s) {
-            s.style.display = 'none';
-            s.style.opacity = '0';
-            s.style.pointerEvents = 'none';
+            s.style.setProperty('display', 'none', 'important');
+            s.style.setProperty('opacity', '0', 'important');
+            s.style.setProperty('pointer-events', 'none', 'important');
             s.classList.remove('active');
             s.classList.add('hidden');
         }
     });
 
-    // Also force-hide any remnants of loadingScreen
-    const ls = document.getElementById('loadingScreen');
-    if (ls && newScreen !== loadingScreen) {
-        ls.style.display = 'none';
-        ls.style.opacity = '0';
-        ls.style.pointerEvents = 'none';
-    }
-
     // 2. Show the requested screen
     if (newScreen && newScreen.id) {
         console.log(`[SwitchScreen] Opening ${newScreen.id}`);
-        newScreen.style.display = 'flex';
-        newScreen.style.opacity = '1';
-        newScreen.style.pointerEvents = 'auto';
+        newScreen.style.setProperty('display', 'flex', 'important');
+        newScreen.style.setProperty('opacity', '1', 'important');
+        newScreen.style.setProperty('pointer-events', 'auto', 'important');
         newScreen.classList.remove('hidden');
         newScreen.classList.add('active');
         

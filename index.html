@@ -20,11 +20,11 @@
     <div id="startScreen" class="screen hidden">
         <img src="assets/ui/logo_main.png" class="title-image" alt="Fish Rush">
         <div class="start-buttons-container">
-            <button id="startButton" class="button" onclick="if(typeof startGame==='function')startGame()"></button>
-            <button id="extrasButton" class="button" onclick="if(typeof showExtras==='function')showExtras()"></button>
-            <button id="rankingButton" class="button" onclick="if(typeof showRanking==='function')showRanking()"></button>
-            <button id="optionsButton" class="button" onclick="if(typeof showOptions==='function')showOptions()"></button>
-            <button id="creditsButton" class="button" onclick="if(typeof showCredits==='function')showCredits()"></button>
+            <button id="startButton" class="button"></button>
+            <button id="extrasButton" class="button"></button>
+            <button id="rankingButton" class="button"></button>
+            <button id="optionsButton" class="button"></button>
+            <button id="creditsButton" class="button"></button>
         </div>
     </div>
 
@@ -116,26 +116,35 @@
     <script src="capacitor.js"></script>
     <script src="script.js"></script>
 
-    <!-- NUCLEAR LOADING FALLBACK: runs completely independently -->
     <script>
     (function() {
         console.log("Nuclear fallback initiated");
-        var DELAY = 3500;
+        var DELAY = 4000;
         function forceShowMenu() {
             console.log("forceShowMenu executing...");
+            if (typeof proceedToGame === 'function' && typeof loadingDone !== 'undefined' && !loadingDone) {
+                proceedToGame();
+                window._loadingForceDone = true;
+                return;
+            }
+            
+            // Re-check elements for direct fallback
             var ls = document.getElementById('loadingScreen');
             var ss = document.getElementById('startScreen');
             if (ls) {
-                ls.style.cssText = 'display:none !important; opacity:0 !important; pointer-events:none !important; visibility:hidden !important;';
+                ls.style.setProperty('display', 'none', 'important');
+                ls.style.setProperty('opacity', '0', 'important');
             }
             if (ss) {
-                ss.style.cssText = 'display:flex !important; opacity:1 !important; pointer-events:auto !important; visibility:visible !important;';
+                ss.style.setProperty('display', 'flex', 'important');
+                ss.style.setProperty('opacity', '1', 'important');
+                ss.style.setProperty('pointer-events', 'auto', 'important');
             }
             window._loadingForceDone = true;
             if (typeof loadingDone !== 'undefined') { loadingDone = true; }
         }
         setTimeout(forceShowMenu, DELAY);
-        setTimeout(forceShowMenu, 6000);
+        setTimeout(forceShowMenu, 6500);
     })();
     </script>
 </body>
