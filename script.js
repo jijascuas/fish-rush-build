@@ -157,10 +157,9 @@ function runInit() {
     initElements();
     bindEvents();
     
-    // Safety check for start screen
+    // Use switchScreen to ensure consistent state
     if (startScreen) {
-        startScreen.style.setProperty('display', 'flex', 'important');
-        startScreen.style.setProperty('opacity', '1', 'important');
+        switchScreen(startScreen);
     }
 }
 
@@ -555,12 +554,22 @@ scoreLabelImage.src = 'assets/ui/score_label.png';
 // Image loading system remains for assets, but no longer blocks the app
 let imagesLoaded = 0;
 const totalImages = 33;
-let loadingDone = true; // Always done
-let imagesReady = true; // Pretend ready
-let timerDone = true;   // Always done
+let loadingDone = false; // Start as false to allow loading logic to run
+let imagesReady = false; 
+let timerDone = false;   
 
 function proceedToGame() {
-    // Already in menu, just ensure it's visible
+    if (loadingDone) return;
+    loadingDone = true;
+    console.log('[Loading] Proceeding to game menu...');
+    
+    // Force hide loading screen classes
+    if (loadingScreen) {
+        loadingScreen.classList.add('hidden');
+        loadingScreen.style.display = 'none';
+        loadingScreen.style.pointerEvents = 'none';
+    }
+    
     switchScreen(startScreen);
     try { drawInitialState(); } catch(e) {}
 }
@@ -569,6 +578,8 @@ function checkImagesLoaded() {
     imagesLoaded++;
     if (imagesLoaded >= totalImages) {
         console.log('[Loading] Assets ready.');
+        imagesReady = true;
+        proceedToGame();
     }
 }
 
@@ -718,12 +729,15 @@ const setupButton = (idOrEl, handler) => {
         if (e && e.cancelable) e.preventDefault();
     };
 
-    // Touchstart is most responsive on mobile
-    btn.addEventListener('touchstart', trigger, { passive: false });
-    // Keep click/mousedown as fallback for non-touch
-    btn.addEventListener('mousedown', (e) => {
-        if (e.button === 0) trigger(e);
-    });
+    // Unified interaction handler
+    const onInteract = (e) => {
+        // Only prevent default on touch if we are handling it here to avoid ghost clicks
+        if (e.type === 'touchstart' && e.cancelable) e.preventDefault();
+        trigger(e);
+    };
+
+    btn.addEventListener('touchstart', onInteract, { passive: false });
+    btn.addEventListener('click', onInteract);
 };
 
 function bindEvents() {
@@ -1117,8 +1131,8 @@ function generateObstacleWave() {
     positions.forEach(yPos => {
         const rand = Math.random();
         let type;
-        if (rand < 0.01) type = OBSTACLE_TYPES[4];
-        else if (rand < 0.03) type = OBSTACLE_TYPES[3];
+        if (rand < 0.08) type = OBSTACLE_TYPES[4]; // Increased from 0.01 to 0.08
+        else if (rand < 0.15) type = OBSTACLE_TYPES[3]; // Increased from 0.02 to 0.07 (cumulative 0.15)
         else {
             const r = Math.random() * 100;
             if (r < 50) type = OBSTACLE_TYPES[0];
@@ -1260,8 +1274,12 @@ function updateGame(deltaTime) {
         if (obs.x + obs.width < -50) { obstacles.splice(i, 1); continue; }
 
         if (!obs.scored) {
-            const collision = (cx + HITBOX_SIZE/2 > obs.x && cx - HITBOX_SIZE/2 < obs.x + obs.width &&
-                               clownfishY + HITBOX_SIZE/2 > obs.y && clownfishY - HITBOX_SIZE/2 < obs.y + obs.height);
+            // Very generous hitbox for collectibles (bubbles and hearts)
+            const isCollectible = obs.shield || obs.damage < 0;
+            const hSize = isCollectible ? 100 : HITBOX_SIZE;
+            
+            const collision = (cx + hSize/2 > obs.x && cx - hSize/2 < obs.x + obs.width &&
+                               clownfishY + hSize/2 > obs.y && clownfishY - hSize/2 < obs.y + obs.height);
             if (collision) {
                 if (obs.shield) { 
                     shieldActive = true; 

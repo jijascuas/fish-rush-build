@@ -426,12 +426,27 @@ canvas.game-active {
     width: 100%;
 }
 #loadingScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     background-color: #051e30;
     background-image: url('assets/loading_bg.png');
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     z-index: 9999;
+    pointer-events: auto; /* Bloquea todo mientras carga */
+}
+
+#loadingScreen.hidden {
+    display: none !important;
+    pointer-events: none !important;
 }
 
 #loadingText {
