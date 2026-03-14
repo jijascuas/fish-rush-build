@@ -43,33 +43,30 @@ canvas.game-active {
     left: 0;
     width: 100%;
     height: 100%;
-    display: flex;
+    display: none; /* Hidden by default */
     flex-direction: column;
-    justify-content: center; /* Center everything vertically */
+    justify-content: center;
     align-items: center;
     color: white;
-    z-index: 2000; /* Extremely high */
+    z-index: 2000;
     padding: env(safe-area-inset-top, 20px) 20px env(safe-area-inset-bottom, 20px) 20px;
     box-sizing: border-box;
-    opacity: 1;
-    pointer-events: auto !important; 
+    opacity: 0;
+    pointer-events: none;
     transition: opacity 0.3s ease-in-out;
 }
 
-
-
-
-
-.screen[style*="display: none"] {
-    opacity: 0;
-    pointer-events: none;
-    display: none !important; /* Force hide to prevent layout issues */
+.screen.active {
+    display: flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    z-index: 3000 !important;
 }
-#loadingScreen {
-    z-index: 110;
-}
-#startScreen {
-    z-index: 100;
+
+.screen.hidden {
+    display: none !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 #startScreen {
     background: rgba(12, 84, 118, 0.7) url('assets/ui/start_screen.jpeg') center/cover no-repeat;

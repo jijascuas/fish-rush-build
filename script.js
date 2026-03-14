@@ -104,32 +104,39 @@ if (window.Capacitor) {
     });
 }
 // -------------------------
-const startScreen = document.getElementById('startScreen');
-const extrasScreen = document.getElementById('extrasScreen');
-const optionsScreen = document.getElementById('optionsScreen');
-const creditsScreen = document.getElementById('creditsScreen');
-const gameOverScreen = document.getElementById('gameOverScreen');
-const startButton = document.getElementById('startButton');
-const extrasButton = document.getElementById('extrasButton');
-const optionsButton = document.getElementById('optionsButton');
-const creditsButton = document.getElementById('creditsButton');
-const backButton = document.getElementById('backButton');
-const extrasBackButton = document.getElementById('extrasBackButton');
-const creditsBackButton = document.getElementById('creditsBackButton');
-const restartButton = document.getElementById('restartButton');
-const menuButton = document.getElementById('menuButton');
-const finalScoreDisplay = document.getElementById('finalScore');
-const volumeSlider = document.getElementById('volumeSlider');
-const volumeValue = document.getElementById('volumeValue');
+// --- Global Document Elements ---
+let startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen;
+let startButton, extrasButton, optionsButton, creditsButton, rankingButton, restartButton, menuButton;
+let finalScoreDisplay, volumeSlider, volumeValue, leaderboardList, playerNameInput, submitScoreButton;
 
-const rankingScreen = document.getElementById('rankingScreen');
-const rankingButton = document.getElementById('rankingButton');
-const rankingBackButton = document.getElementById('rankingBackButton');
-const leaderboardList = document.getElementById('leaderboardList');
-const nameEntryScreen = document.getElementById('nameEntryScreen');
-const playerNameInput = document.getElementById('playerNameInput');
-const submitScoreButton = document.getElementById('submitScoreButton');
-const nameEntryBackButton = document.getElementById('nameEntryBackButton');
+function initElements() {
+    startScreen = document.getElementById('startScreen');
+    extrasScreen = document.getElementById('extrasScreen');
+    optionsScreen = document.getElementById('optionsScreen');
+    creditsScreen = document.getElementById('creditsScreen');
+    gameOverScreen = document.getElementById('gameOverScreen');
+    rankingScreen = document.getElementById('rankingScreen');
+    nameEntryScreen = document.getElementById('nameEntryScreen');
+    
+    startButton = document.getElementById('startButton');
+    extrasButton = document.getElementById('extrasButton');
+    optionsButton = document.getElementById('optionsButton');
+    creditsButton = document.getElementById('creditsButton');
+    rankingButton = document.getElementById('rankingButton');
+    restartButton = document.getElementById('restartButton');
+    menuButton = document.getElementById('menuButton');
+    
+    finalScoreDisplay = document.getElementById('finalScore');
+    volumeSlider = document.getElementById('volumeSlider');
+    volumeValue = document.getElementById('volumeValue');
+    leaderboardList = document.getElementById('leaderboardList');
+    playerNameInput = document.getElementById('playerNameInput');
+    submitScoreButton = document.getElementById('submitScoreButton');
+}
+
+// Initialize immediately but also in DOMContentLoaded just in case
+initElements();
+
 
 // --- Firebase Configuration ---
 const firebaseConfig = {
@@ -167,10 +174,15 @@ function initFirebase() {
 
 // Safe Initialization
 window.addEventListener('DOMContentLoaded', () => {
+    initElements(); // Ensure everything is linked
+    bindEvents();   // Move button binding to a helper
+    
     // Give external SDKs a moment to settle
     setTimeout(() => {
         initFirebase();
         initAds();
+        // Force start screen if loading hasn't finished
+        if (!loadingDone) switchScreen(startScreen);
     }, 300);
 });
 
@@ -532,31 +544,33 @@ setTimeout(() => {
 
 // Global helper for clean screen switching
 function switchScreen(newScreen) {
-    // Hide all screens first
     const screens = [startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen];
+    
+    // 1. Hide ALL screens first
     screens.forEach(s => {
-        if (s) s.style.display = 'none';
+        if (s) {
+            s.classList.remove('active');
+            s.classList.add('hidden');
+        }
     });
 
-
-    // Show only the requested one as a flex container
-    if (newScreen) {
-        newScreen.style.display = 'flex';
-        // Ensure it's opaque immediately
-        newScreen.style.opacity = '1';
-        newScreen.style.pointerEvents = 'auto';
+    // 2. Show the requested screen
+    if (newScreen && newScreen.id) {
+        console.log(`[SwitchScreen] Opening ${newScreen.id}`);
+        newScreen.classList.remove('hidden');
+        newScreen.classList.add('active');
         
         // Ensure canvas is NOT blocking when a screen is active
         if (canvas) canvas.style.pointerEvents = 'none';
 
-        // Show banner on menu screens
+        // Ads management
         if (newScreen === startScreen || newScreen === extrasScreen || newScreen === optionsScreen || newScreen === rankingScreen) {
             showBanner();
         } else {
             hideBanner();
         }
     } else {
-        // Hiding all screens (starting game)
+        // null means starting game logic (hide all screens)
         if (canvas) canvas.style.pointerEvents = 'auto';
         hideBanner();
     }
@@ -617,79 +631,80 @@ const OBSTACLE_TYPES = [
 
 // Event listeners - Wrapped in safe checks to prevent crashes
 // Event listeners - Wrapped in safe checks to prevent crashes
-const setupButton = (btnOrId, handler) => {
-    const btn = typeof btnOrId === 'string' ? document.getElementById(btnOrId) : btnOrId;
-    if (!btn) return;
+const setupButton = (idOrEl, handler) => {
+    const btn = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
+    if (!btn) {
+        console.warn(`[ButtonSetup] Element ${idOrEl} not found`);
+        return;
+    }
     
     let isProcessing = false;
     const trigger = (e) => {
         if (isProcessing) return;
         isProcessing = true;
-        
-        // Short debounce to prevent double-triggering
         setTimeout(() => { isProcessing = false; }, 400);
         
-        console.log(`[Interaction] Button ${btn.id || 'anonymous'} triggered by ${e.type}`);
+        console.log(`[Interaction] ${btn.id || 'btn'} triggered by ${e.type}`);
         soundSystem.playPopSound();
         handler();
+        
+        // Visual feedback
+        btn.style.transform = 'scale(0.9)';
+        setTimeout(() => { btn.style.transform = ''; }, 100);
     };
 
-    // Use pointerdown for immediate response on both touch and mouse
+    // Use multiple event types for maximum compatibility
     btn.addEventListener('pointerdown', (e) => {
-        // Only trigger on primary button (left click) or any touch
-        if (e.pointerType === 'touch' || e.button === 0) {
-            trigger(e);
-        }
+        if (e.pointerType === 'touch' || e.button === 0) trigger(e);
     }, { passive: true });
-
-    // Prevent default click behavior to stop ghost clicks or unintended refreshes
+    
     btn.addEventListener('click', (e) => {
         e.preventDefault();
-        // Fallback for cases where pointerdown might be blocked, but debounce will handle double trigger
         trigger(e);
     });
 };
 
+function bindEvents() {
+    setupButton('startButton', startGame);
+    setupButton('extrasButton', showExtras);
+    setupButton('optionsButton', showOptions);
+    setupButton('creditsButton', showCredits);
+    setupButton('rankingButton', showRanking);
+    setupButton('restartButton', restartGame);
+    setupButton('menuButton', backToMenu);
+    setupButton('submitScoreButton', submitScore);
 
-setupButton('startButton', startGame);
-setupButton('extrasButton', showExtras);
-setupButton('optionsButton', showOptions);
-setupButton('creditsButton', showCredits);
-setupButton('rankingButton', showRanking);
-setupButton('restartButton', restartGame);
-setupButton('menuButton', backToMenu);
-setupButton('submitScoreButton', submitScore);
+    setupButton('backButton', hideOptions);
+    setupButton('extrasBackButton', hideExtras);
+    setupButton('creditsBackButton', hideCredits);
+    setupButton('rankingBackButton', hideRanking);
+    setupButton('nameEntryBackButton', () => switchScreen(startScreen));
+    
+    // Bind skins
+    appearanceButtons.forEach((button, index) => {
+        if (button) {
+            setupButton(button, () => {
+                const unlockReq = parseInt(button.getAttribute('data-unlock') || '0');
+                if (highScore >= unlockReq) {
+                    selectedAppearance = index;
+                    appearanceButtons.forEach(btn => btn && btn.classList.remove('selected'));
+                    button.classList.add('selected');
+                }
+            });
+        }
+    });
 
-setupButton('backButton', hideOptions);
-setupButton('extrasBackButton', hideExtras);
-setupButton('creditsBackButton', hideCredits);
-setupButton('rankingBackButton', hideRanking);
-setupButton('nameEntryBackButton', () => switchScreen(startScreen));
+    if (volumeSlider) volumeSlider.oninput = updateVolume;
+}
 
 if (volumeSlider) volumeSlider.addEventListener('input', updateVolume);
 
 // Generic pop sound for all buttons including those not in our list
-document.querySelectorAll('.button, .privacy-link').forEach(btn => {
+document.querySelectorAll('.button, .privacy-link, .appearance-btn').forEach(btn => {
     if (btn) {
         btn.addEventListener('click', () => {
             if (!btn.id || !['startButton', 'extrasButton', 'optionsButton', 'creditsButton', 'rankingButton', 'restartButton', 'menuButton', 'submitScoreButton'].includes(btn.id)) {
                 soundSystem.playPopSound();
-            }
-        });
-    }
-});
-
-
-appearanceButtons.forEach((button, index) => {
-    if (button) {
-        setupButton(button, () => {
-            const unlockReq = parseInt(button.getAttribute('data-unlock') || '0');
-            if (highScore >= unlockReq) {
-                selectedAppearance = index;
-                appearanceButtons.forEach(btn => btn && btn.classList.remove('selected'));
-                button.classList.add('selected');
-            } else {
-                console.log(`[Extras] Skin locked. Need ${unlockReq} pts.`);
             }
         });
     }
