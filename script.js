@@ -185,55 +185,50 @@ window.addEventListener('DOMContentLoaded', () => {
         initAds();
     }, 300);
 
-    // Initial Loading logic: Wait 5 seconds, then auto-proceed or allow tap
-    console.log("[Loading] Starting 5s timer...");
-    setTimeout(() => {
+    // Loading: wait 3s then auto-proceed (or wait for tap if images still loading)
+    console.log('[Loading] Starting 3s auto-proceed timer...');
+    setTimeout(function() {
         timerDone = true;
-        console.log("[Loading] Timer done. imagesReady=" + imagesReady);
+        console.log('[Loading] 3s timer done. imagesReady=' + imagesReady + ' loadingDone=' + loadingDone);
 
-        // If images are already loaded, proceed automatically (no tap needed)
-        if (imagesReady && !loadingDone) {
-            console.log("[Loading] Images ready. Auto-proceeding to menu.");
+        if (loadingDone) return; // Already proceeded
+
+        if (imagesReady) {
+            // Images done — go straight to menu
             proceedToGame();
-            return;
-        }
+        } else {
+            // Images still loading — show TAP TO START
+            var lt = document.getElementById('loadingText');
+            if (lt) { lt.innerHTML = 'TAP TO START'; lt.classList.add('ready'); }
 
-        // Images not ready yet — show TAP TO START and wait
-        if (loadingText) {
-            loadingText.innerHTML = "TAP TO START";
-            loadingText.classList.add('ready');
-        }
-
-        if (loadingScreen) {
-            const enterMenu = (e) => {
-                if (e) e.preventDefault();
-                if (loadingDone) return;
-
-                if (!imagesReady) {
-                    if (loadingText) loadingText.innerHTML = "LOADING...";
-                    console.log("[Loading] Tap received but assets not ready. Waiting...");
-                    // Poll every 500ms until images are ready, then proceed
-                    const waitForAssets = setInterval(() => {
+            var ls = document.getElementById('loadingScreen');
+            if (ls) {
+                var entered = false;
+                var onTap = function(e) {
+                    if (entered || loadingDone) return;
+                    entered = true;
+                    if (e && e.preventDefault) e.preventDefault();
+                    if (lt) lt.innerHTML = 'LOADING...';
+                    // Wait for images or force after 3 more seconds
+                    var check = setInterval(function() {
                         if (imagesReady || loadingDone) {
-                            clearInterval(waitForAssets);
+                            clearInterval(check);
                             if (!loadingDone) proceedToGame();
                         }
-                    }, 500);
-                    return;
-                }
-
-                console.log("[Loading] User tapped. Transitioning to menu...");
-                proceedToGame();
-
-                loadingScreen.removeEventListener('pointerdown', enterMenu);
-                loadingScreen.removeEventListener('click', enterMenu);
-            };
-
-            loadingScreen.addEventListener('pointerdown', enterMenu, { passive: false });
-            loadingScreen.addEventListener('click', enterMenu);
-            loadingScreen.style.cursor = 'pointer';
+                    }, 300);
+                    // Safety: force after 3s anyway
+                    setTimeout(function() {
+                        clearInterval(check);
+                        if (!loadingDone) proceedToGame();
+                    }, 3000);
+                };
+                ls.addEventListener('pointerdown', onTap, { passive: false });
+                ls.addEventListener('click', onTap);
+                ls.style.cursor = 'pointer';
+            }
         }
-    }, 5000);
+    }, 3000);
+
 });
 
 
@@ -561,44 +556,56 @@ let timerDone = false;
 
 function proceedToGame() {
     if (loadingDone) return;
-    // Force images ready if called from fallback timeout
-    imagesReady = true;
     loadingDone = true;
-    console.log(`[Loading] Entering Menu. imagesLoaded=${imagesLoaded}`);
-    
-    drawInitialState();
-    if (volumeSlider) updateVolume();
-    switchScreen(startScreen);
-}
+    imagesReady = true;
+    console.log('[Loading] proceedToGame() called. Forcing menu open.');
 
+    // Direct DOM manipulation — more reliable than class toggling
+    const ls = document.getElementById('loadingScreen');
+    const ss = document.getElementById('startScreen');
+
+    if (ls) {
+        ls.style.display = 'none';
+        ls.style.opacity = '0';
+        ls.style.pointerEvents = 'none';
+        ls.classList.remove('active');
+        ls.classList.add('hidden');
+    }
+
+    if (ss) {
+        ss.style.display = 'flex';
+        ss.style.opacity = '1';
+        ss.style.pointerEvents = 'auto';
+        ss.classList.remove('hidden');
+        ss.classList.add('active');
+    }
+
+    try { drawInitialState(); } catch(e) { console.warn('[Loading] drawInitialState error:', e); }
+    try { if (volumeSlider) updateVolume(); } catch(e) {}
+}
 
 function checkImagesLoaded() {
     imagesLoaded++;
-    console.log(`[Loading] Image ${imagesLoaded}/${totalImages} loaded.`);
     if (imagesLoaded >= totalImages) {
         imagesReady = true;
-        console.log("[Loading] All images ready.");
-        // If the 5s timer already fired AND user already tapped (timerDone),
-        // auto-proceed so the user doesn't get stuck.
-        if (timerDone && !loadingDone) {
-            console.log("[Loading] Auto-proceed after images finished.");
-            proceedToGame();
-        }
+        console.log('[Loading] All images counted: ' + imagesLoaded);
+        if (timerDone && !loadingDone) proceedToGame();
     }
 }
 
 function handleImageError(e) {
     console.warn('[Loading] Image failed:', e && e.target ? e.target.src : 'unknown');
-    checkImagesLoaded(); // Count errors as loaded to avoid being stuck
+    checkImagesLoaded();
 }
 
-// Hard fallback: after 8 seconds, force proceed regardless of image state
-setTimeout(() => {
+// HARD FALLBACK: After 6s, force proceed no matter what
+setTimeout(function() {
     if (!loadingDone) {
-        console.warn('[Loading] HARD TIMEOUT: forcing proceed.');
+        console.warn('[Loading] 6s HARD TIMEOUT fired.');
         proceedToGame();
     }
-}, 8000);
+}, 6000);
+
 
 
 
