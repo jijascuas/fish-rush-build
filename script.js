@@ -12,63 +12,69 @@ window.onerror = function(msg, url, lineNo, columnNo, error) {
     return false;
 };
 
-// --- AdMob Integration ---
+// --- AdMob Integration & Safety ---
+let adMobInitialized = false;
+
 async function initAds() {
-    if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
-        const { AdMob } = window.Capacitor.Plugins;
-        try {
+    console.log("[AdMob] Attempting initialization...");
+    try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.AdMob) {
+            const { AdMob } = window.Capacitor.Plugins;
             await AdMob.initialize(); 
-            console.log("AdMob Initialized");
-        } catch (e) {
-            console.error("AdMob Init Error:", e.message || e);
+            adMobInitialized = true;
+            console.log("[AdMob] Initialized successfully");
+            // Show banner immediately after init
+            setTimeout(showBanner, 1000);
+        } else {
+            console.warn("[AdMob] Plugin not found.");
         }
-    } else {
-        console.log("AdMob not available - assuming non-native environment");
+    } catch (e) {
+        console.error("[AdMob] Init Error:", e);
     }
 }
 
-
 async function showInterstitial() {
-    if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
+    if (!adMobInitialized || !window.Capacitor) return;
+    try {
         const { AdMob } = window.Capacitor.Plugins;
-        try {
-            await AdMob.prepareInterstitial({
-                adId: 'ca-app-pub-4159023709825629/4795233193',
-            });
-            await AdMob.showInterstitial();
-        } catch (e) {
-            console.warn("AdMob Show Interstitial Error:", e.message);
-        }
+        if (!AdMob) return;
+        await AdMob.prepareInterstitial({
+            adId: 'ca-app-pub-4159023709825629/4795233193',
+        });
+        await AdMob.showInterstitial();
+    } catch (e) {
+        console.warn("[AdMob] Interstitial Error:", e.message);
     }
 }
 
 async function showBanner() {
-    if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
+    if (!adMobInitialized || !window.Capacitor) return;
+    try {
         const { AdMob } = window.Capacitor.Plugins;
-        try {
-            await AdMob.showBanner({
-                adId: 'ca-app-pub-4159023709825629/8163157205',
-                adSize: 'BANNER',
-                position: 'BOTTOM_CENTER',
-                margin: 0,
-                isTesting: false
-            });
-        } catch (e) {
-            console.warn("AdMob Show Banner Error:", e.message);
-        }
+        if (!AdMob) return;
+        await AdMob.showBanner({
+            adId: 'ca-app-pub-4159023709825629/8163157205',
+            adSize: 'BANNER',
+            position: 'BOTTOM_CENTER',
+            margin: 0,
+            isTesting: false
+        });
+    } catch (e) {
+        console.warn("[AdMob] Banner Show Error:", e.message);
     }
 }
 
 async function hideBanner() {
-    if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
+    if (!adMobInitialized || !window.Capacitor) return;
+    try {
         const { AdMob } = window.Capacitor.Plugins;
-        try {
-            await AdMob.hideBanner();
-        } catch (e) {
-            console.warn("AdMob Hide Banner Error:", e.message);
-        }
+        if (!AdMob) return;
+        await AdMob.hideBanner();
+    } catch (e) {
+        console.warn("[AdMob] Banner Hide Error:", e.message);
     }
 }
+
 
 // Auto-initialization moved to DOMContentLoaded listener
 
@@ -174,62 +180,40 @@ function initFirebase() {
     }
 }
 
-// Safe Initialization
-window.addEventListener('DOMContentLoaded', () => {
-    initElements(); // Ensure everything is linked
-    bindEvents();   // Move button binding to a helper
+// --- Startup Orchestrator ---
+let isAppInitialized = false;
+
+function initializeApplication() {
+    if (isAppInitialized) return;
+    isAppInitialized = true;
     
-    // Give external SDKs a moment to settle
+    console.log("[Startup] Initializing application components...");
+    
+    try {
+        initElements();
+        bindEvents();
+        
+        // Finalize styles
+        const ls = document.getElementById('loadingScreen');
+        if (ls && window._loadingForceDone) {
+            ls.style.display = 'none';
+        }
+    } catch (e) {
+        console.error("[Startup] Critical Error during init:", e);
+    }
+    
+    // Non-critical services with delays
     setTimeout(() => {
         initFirebase();
         initAds();
-    }, 300);
+    }, 500);
+}
 
-    // Loading: wait 3s then auto-proceed (or wait for tap if images still loading)
-    console.log('[Loading] Starting 3s auto-proceed timer...');
-    setTimeout(function() {
-        timerDone = true;
-        console.log('[Loading] 3s timer done. imagesReady=' + imagesReady + ' loadingDone=' + loadingDone);
+// Execute on multiple triggers for maximum safety
+window.addEventListener('DOMContentLoaded', initializeApplication);
+// For Capacitor, some plugins might need a bit more time
+setTimeout(initializeApplication, 1000);
 
-        if (loadingDone) return; // Already proceeded
-
-        if (imagesReady) {
-            // Images done — go straight to menu
-            proceedToGame();
-        } else {
-            // Images still loading — show TAP TO START
-            var lt = document.getElementById('loadingText');
-            if (lt) { lt.innerHTML = 'TAP TO START'; lt.classList.add('ready'); }
-
-            var ls = document.getElementById('loadingScreen');
-            if (ls) {
-                var entered = false;
-                var onTap = function(e) {
-                    if (entered || loadingDone) return;
-                    entered = true;
-                    if (e && e.preventDefault) e.preventDefault();
-                    if (lt) lt.innerHTML = 'LOADING...';
-                    // Wait for images or force after 3 more seconds
-                    var check = setInterval(function() {
-                        if (imagesReady || loadingDone) {
-                            clearInterval(check);
-                            if (!loadingDone) proceedToGame();
-                        }
-                    }, 300);
-                    // Safety: force after 3s anyway
-                    setTimeout(function() {
-                        clearInterval(check);
-                        if (!loadingDone) proceedToGame();
-                    }, 3000);
-                };
-                ls.addEventListener('pointerdown', onTap, { passive: false });
-                ls.addEventListener('click', onTap);
-                ls.style.cursor = 'pointer';
-            }
-        }
-    }, 3000);
-
-});
 
 
 // Appearance buttons (6 appearances)

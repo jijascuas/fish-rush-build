@@ -46,11 +46,11 @@
     <div id="startScreen" class="screen hidden">
         <img src="assets/ui/logo_main.png" class="title-image" alt="Fish Rush">
         <div class="start-buttons-container">
-            <button id="startButton" class="button"></button>
-            <button id="extrasButton" class="button"></button>
-            <button id="rankingButton" class="button"></button>
-            <button id="optionsButton" class="button"></button>
-            <button id="creditsButton" class="button"></button>
+            <button id="startButton" class="button" onclick="if(typeof startGame==='function')startGame()"></button>
+            <button id="extrasButton" class="button" onclick="if(typeof showExtras==='function')showExtras()"></button>
+            <button id="rankingButton" class="button" onclick="if(typeof showRanking==='function')showRanking()"></button>
+            <button id="optionsButton" class="button" onclick="if(typeof showOptions==='function')showOptions()"></button>
+            <button id="creditsButton" class="button" onclick="if(typeof showCredits==='function')showCredits()"></button>
         </div>
     </div>
 
