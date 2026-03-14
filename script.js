@@ -105,7 +105,6 @@ if (window.Capacitor) {
     });
 }
 // -------------------------
-const loadingScreen = document.getElementById('loadingScreen');
 const startScreen = document.getElementById('startScreen');
 const extrasScreen = document.getElementById('extrasScreen');
 const optionsScreen = document.getElementById('optionsScreen');
@@ -121,9 +120,9 @@ const creditsBackButton = document.getElementById('creditsBackButton');
 const restartButton = document.getElementById('restartButton');
 const menuButton = document.getElementById('menuButton');
 const finalScoreDisplay = document.getElementById('finalScore');
-const loadingText = document.getElementById('loadingText');
 const volumeSlider = document.getElementById('volumeSlider');
 const volumeValue = document.getElementById('volumeValue');
+
 const rankingScreen = document.getElementById('rankingScreen');
 const rankingButton = document.getElementById('rankingButton');
 const rankingBackButton = document.getElementById('rankingBackButton');
@@ -193,13 +192,10 @@ class GameSoundSystem {
         this.music.preload = 'auto';
         this.music.autoplay = false;
         
-        this.introSound = new Audio();
-        this.introSound.src = 'assets/intro.wav';
-        this.introSound.preload = 'auto';
-
         this.isMusicPlaying = false;
         
         // Ensure music stays playing and doesn't get stuck
+
         this.music.addEventListener('play', () => { 
             this.isMusicPlaying = true;
         });
@@ -361,26 +357,10 @@ class GameSoundSystem {
     }
 
     playIntroSound() {
-        this.introSound.volume = this.musicVolume;
-        const playPromise = this.introSound.play();
-        
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                console.log("Autoplay blocked. Waiting for interaction to play intro.");
-                // Fallback: Play on first interaction
-                const playOnInteraction = () => {
-                    this.init();
-                    if (this.ctx.state === 'suspended') this.ctx.resume();
-                    this.introSound.play();
-                    window.removeEventListener('click', playOnInteraction);
-                    window.removeEventListener('touchstart', playOnInteraction);
-                };
-                window.addEventListener('click', playOnInteraction);
-                window.addEventListener('touchstart', playOnInteraction);
-            });
-        }
+        // Disabled intro sound
     }
 }
+
 
 // Global interaction listener to unlock AudioContext
 const unlockAudio = () => {
@@ -435,11 +415,11 @@ backgroundImage.src = 'assets/background.png';
 
 const loadingBgImage = new Image();
 loadingBgImage.onload = () => {
-    loadingScreen.classList.add('bg-ready');
     checkImagesLoaded();
 };
 loadingBgImage.onerror = handleImageError;
 loadingBgImage.src = 'assets/loading_bg.png';
+
 
 const heartIconImage = new Image();
 heartIconImage.onload = checkImagesLoaded;
@@ -498,36 +478,15 @@ let loadingDone = false;
 const loadingStartTime = Date.now();
 
 function proceedToGame() {
-    if (loadingDone) return; // Prevent calling twice
+    if (loadingDone) return; 
     loadingDone = true;
-    console.log(`[Loading] Proceeding. Loaded ${imagesLoaded}/${totalImages} images.`);
-
-    const elapsed = Date.now() - loadingStartTime;
-    const wait = Math.max(0, 3000 - elapsed);
-
-    setTimeout(() => {
-        drawInitialState();
-        soundSystem.setVolume(currentVolume / 10);
-
-        const touchMsg = document.getElementById('touchToStart');
-        if (touchMsg) touchMsg.style.display = 'block';
-        startScreen.style.display = 'flex';
-
-        const enterGame = () => {
-            loadingScreen.style.opacity = '0';
-            setTimeout(() => {
-                switchScreen(startScreen);
-                loadingScreen.style.opacity = '1';
-                if (touchMsg) touchMsg.style.display = 'none';
-                soundSystem.playIntroSound();
-            }, 300);
-            window.removeEventListener('click', enterGame);
-            window.removeEventListener('touchstart', enterGame);
-        };
-        window.addEventListener('click', enterGame);
-        window.addEventListener('touchstart', enterGame);
-    }, wait);
+    console.log(`[Loading] Images ready. Showing menu.`);
+    
+    drawInitialState();
+    soundSystem.setVolume(currentVolume / 10);
+    switchScreen(startScreen);
 }
+
 
 function checkImagesLoaded() {
     imagesLoaded++;
@@ -545,22 +504,29 @@ function handleImageError(e) {
 // This handles cases where some onload/onerror events never fire in Android WebView.
 setTimeout(() => {
     if (!loadingDone) {
-        console.warn(`[Loading] Timeout! Only ${imagesLoaded}/${totalImages} images loaded. Proceeding anyway.`);
-        if (loadingText) loadingText.innerHTML = "FINISHING LOADING...";
+        console.warn(`[Loading] Timeout! Proceeding anyway.`);
         proceedToGame();
     }
 }, 7000);
 
 
+
 // Global helper for clean screen switching
 function switchScreen(newScreen) {
     // Hide all screens first
-    [loadingScreen, startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen].forEach(s => {
+    const screens = [startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen];
+    screens.forEach(s => {
         if (s) s.style.display = 'none';
     });
+
+
     // Show only the requested one as a flex container
     if (newScreen) {
         newScreen.style.display = 'flex';
+        // Ensure it's opaque immediately
+        newScreen.style.opacity = '1';
+        newScreen.style.pointerEvents = 'auto';
+
         // Show banner on menu screens
         if (newScreen === startScreen || newScreen === extrasScreen || newScreen === optionsScreen || newScreen === rankingScreen) {
             showBanner();
@@ -568,18 +534,13 @@ function switchScreen(newScreen) {
             hideBanner();
         }
     } else {
-        // null means game starts
         hideBanner();
     }
 }
 
-loadingBgImage.onload = () => {
-    loadingScreen.classList.add('bg-ready');
-    checkImagesLoaded();
-};
-loadingBgImage.onerror = checkImagesLoaded;
 
 [backgroundImage, heartIconImage, sharkImage, seashellImage, fishhookImage, shipwheelImage, bubbleShieldImage, heartImage, shieldBubbleImage, scoreLabelImage, ...clownfishImages, ...numberImages, ...hitImages].forEach(img => {
+
     img.onload = checkImagesLoaded;
     img.onerror = handleImageError;
 });
@@ -1182,16 +1143,5 @@ function gameLoop(timestamp) {
 }
 
 // Initial draw (will be overwritten by CSS background, but good for canvas state)
-if (loadingBgImage.complete) {
-    ctx.drawImage(loadingBgImage, 0, 0, canvas.width, canvas.height);
-} else {
-    ctx.fillStyle = '#0a3d62'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-ctx.fillStyle = '#4da6ff'; 
-ctx.font = 'bold 30px Arial'; 
-ctx.textAlign = 'center';
-ctx.shadowBlur = 10;
-ctx.shadowColor = "black";
-ctx.fillText('Loading underwater world...', canvas.width/2, canvas.height/2 + 100);
-ctx.shadowBlur = 0;
 updateVolume();
+

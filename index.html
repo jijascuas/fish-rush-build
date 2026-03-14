@@ -13,29 +13,7 @@
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     
-    <div id="loadingScreen" class="screen">
-        <div id="loadingText">LOADING UNDERWATER WORLD...</div>
-        <div id="touchToStart" style="display: none; position: absolute; bottom: 80px; font-size: 24px; color: #4da6ff; text-shadow: 0 0 10px #000; font-weight: bold; animation: pulse 1.5s infinite;">TOUCH TO START</div>
-    </div>
-    
-    <script>
-        // Emergency fallback: If the main script doesn't remove the loading screen within 12 seconds,
-        // force show the start screen so the user isn't stuck.
-        setTimeout(function() {
-            var loadScreen = document.getElementById('loadingScreen');
-            if (loadScreen && loadScreen.style.display !== 'none') {
-                console.warn("Emergency fallback triggered: Force hiding loading screen.");
-                var startScreen = document.getElementById('startScreen');
-                if (startScreen) {
-                    loadScreen.style.display = 'none';
-                    startScreen.style.display = 'flex';
-                }
-            }
-        }, 12000);
-    </script>
-
-    
-    <div id="startScreen" class="screen" style="display: none;">
+    <div id="startScreen" class="screen">
         <img src="assets/ui/logo_main.png" class="title-image" alt="Fish Rush">
         <div class="start-buttons-container">
             <div class="button-row">
