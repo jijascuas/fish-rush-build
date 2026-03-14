@@ -372,6 +372,8 @@ const numberImages = [];
 const numberUrls = Array.from({length: 10}, (_, i) => `assets/numbers/${i}.png`);
 numberUrls.forEach((url, i) => {
     numberImages[i] = new Image();
+    numberImages[i].onload = checkImagesLoaded;
+    numberImages[i].onerror = handleImageError;
     numberImages[i].src = url;
 });
 
@@ -379,6 +381,8 @@ const clownfishImages = [];
 const clownfishUrls = Array.from({length: 6}, (_, i) => `assets/fish/${i}.png`);
 clownfishUrls.forEach((url, i) => {
     clownfishImages[i] = new Image();
+    clownfishImages[i].onload = checkImagesLoaded;
+    clownfishImages[i].onerror = handleImageError;
     clownfishImages[i].src = url;
 });
 
@@ -386,41 +390,68 @@ const hitImages = [];
 const hitUrls = Array.from({length: 6}, (_, i) => `assets/hits/${i}.png`);
 hitUrls.forEach((url, i) => {
     hitImages[i] = new Image();
+    hitImages[i].onload = checkImagesLoaded;
+    hitImages[i].onerror = handleImageError;
     hitImages[i].src = url;
 });
 
 // Other single images
 const backgroundImage = new Image();
+backgroundImage.onload = checkImagesLoaded;
+backgroundImage.onerror = handleImageError;
 backgroundImage.src = 'assets/background.png';
 
 const loadingBgImage = new Image();
+loadingBgImage.onload = () => {
+    loadingScreen.classList.add('bg-ready');
+    checkImagesLoaded();
+};
+loadingBgImage.onerror = handleImageError;
 loadingBgImage.src = 'assets/loading_bg.png';
 
 const heartIconImage = new Image();
+heartIconImage.onload = checkImagesLoaded;
+heartIconImage.onerror = handleImageError;
 heartIconImage.src = 'assets/ui/heart_icon.png';
 
 const sharkImage = new Image();
+sharkImage.onload = checkImagesLoaded;
+sharkImage.onerror = handleImageError;
 sharkImage.src = 'assets/shark.png';
 
 const seashellImage = new Image();
+seashellImage.onload = checkImagesLoaded;
+seashellImage.onerror = handleImageError;
 seashellImage.src = 'assets/obstacles/seashell.png';
 
 const fishhookImage = new Image();
+fishhookImage.onload = checkImagesLoaded;
+fishhookImage.onerror = handleImageError;
 fishhookImage.src = 'assets/obstacles/fishhook.png';
 
 const shipwheelImage = new Image();
+shipwheelImage.onload = checkImagesLoaded;
+shipwheelImage.onerror = handleImageError;
 shipwheelImage.src = 'assets/obstacles/shipwheel.png';
 
 const bubbleShieldImage = new Image();
+bubbleShieldImage.onload = checkImagesLoaded;
+bubbleShieldImage.onerror = handleImageError;
 bubbleShieldImage.src = 'assets/ui/bubble_shield.png';
 
 const heartImage = new Image();
+heartImage.onload = checkImagesLoaded;
+heartImage.onerror = handleImageError;
 heartImage.src = 'assets/obstacles/heart.png';
 
 const shieldBubbleImage = new Image();
+shieldBubbleImage.onload = checkImagesLoaded;
+shieldBubbleImage.onerror = handleImageError;
 shieldBubbleImage.src = 'assets/ui/bubble_shield.png';
 
 const scoreLabelImage = new Image();
+scoreLabelImage.onload = checkImagesLoaded;
+scoreLabelImage.onerror = handleImageError;
 scoreLabelImage.src = 'assets/ui/score_label.png';
 
 
