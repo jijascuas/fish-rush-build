@@ -185,29 +185,46 @@ window.addEventListener('DOMContentLoaded', () => {
         initAds();
     }, 300);
 
-    // Initial Loading logic: Wait 5 seconds, then allow tap to start
+    // Initial Loading logic: Wait 5 seconds, then auto-proceed or allow tap
     console.log("[Loading] Starting 5s timer...");
     setTimeout(() => {
         timerDone = true;
+        console.log("[Loading] Timer done. imagesReady=" + imagesReady);
+
+        // If images are already loaded, proceed automatically (no tap needed)
+        if (imagesReady && !loadingDone) {
+            console.log("[Loading] Images ready. Auto-proceeding to menu.");
+            proceedToGame();
+            return;
+        }
+
+        // Images not ready yet — show TAP TO START and wait
         if (loadingText) {
             loadingText.innerHTML = "TAP TO START";
             loadingText.classList.add('ready');
-            console.log("[Loading] Timer done. Ready for interaction.");
         }
-        
+
         if (loadingScreen) {
             const enterMenu = (e) => {
                 if (e) e.preventDefault();
-                
+                if (loadingDone) return;
+
                 if (!imagesReady) {
-                    loadingText.innerHTML = "LOADING ASSETS...";
-                    console.log("[Loading] Assets not ready yet.");
+                    if (loadingText) loadingText.innerHTML = "LOADING...";
+                    console.log("[Loading] Tap received but assets not ready. Waiting...");
+                    // Poll every 500ms until images are ready, then proceed
+                    const waitForAssets = setInterval(() => {
+                        if (imagesReady || loadingDone) {
+                            clearInterval(waitForAssets);
+                            if (!loadingDone) proceedToGame();
+                        }
+                    }, 500);
                     return;
                 }
 
                 console.log("[Loading] User tapped. Transitioning to menu...");
                 proceedToGame();
-                
+
                 loadingScreen.removeEventListener('pointerdown', enterMenu);
                 loadingScreen.removeEventListener('click', enterMenu);
             };
@@ -543,14 +560,11 @@ let imagesReady = false;
 let timerDone = false;
 
 function proceedToGame() {
-    if (loadingDone) return; 
-    if (!imagesReady) {
-        console.log("[Loading] Still waiting for images...");
-        return;
-    }
-    
+    if (loadingDone) return;
+    // Force images ready if called from fallback timeout
+    imagesReady = true;
     loadingDone = true;
-    console.log(`[Loading] Entering Menu.`);
+    console.log(`[Loading] Entering Menu. imagesLoaded=${imagesLoaded}`);
     
     drawInitialState();
     if (volumeSlider) updateVolume();
@@ -560,20 +574,31 @@ function proceedToGame() {
 
 function checkImagesLoaded() {
     imagesLoaded++;
+    console.log(`[Loading] Image ${imagesLoaded}/${totalImages} loaded.`);
     if (imagesLoaded >= totalImages) {
         imagesReady = true;
         console.log("[Loading] All images ready.");
-        // We don't call proceedToGame here anymore, 
-        // we wait for the 5s timer + user tap.
+        // If the 5s timer already fired AND user already tapped (timerDone),
+        // auto-proceed so the user doesn't get stuck.
+        if (timerDone && !loadingDone) {
+            console.log("[Loading] Auto-proceed after images finished.");
+            proceedToGame();
+        }
     }
 }
 
 function handleImageError(e) {
     console.warn('[Loading] Image failed:', e && e.target ? e.target.src : 'unknown');
-    checkImagesLoaded();
+    checkImagesLoaded(); // Count errors as loaded to avoid being stuck
 }
 
-// NO AUTO-PROCEED: We wait for the user to tap as requested.
+// Hard fallback: after 8 seconds, force proceed regardless of image state
+setTimeout(() => {
+    if (!loadingDone) {
+        console.warn('[Loading] HARD TIMEOUT: forcing proceed.');
+        proceedToGame();
+    }
+}, 8000);
 
 
 
@@ -613,11 +638,8 @@ function switchScreen(newScreen) {
 }
 
 
-[backgroundImage, heartIconImage, sharkImage, seashellImage, fishhookImage, shipwheelImage, bubbleShieldImage, heartImage, shieldBubbleImage, scoreLabelImage, ...clownfishImages, ...numberImages, ...hitImages].forEach(img => {
-
-    img.onload = checkImagesLoaded;
-    img.onerror = handleImageError;
-});
+// NOTE: onload/onerror handlers are already assigned above when each image is created.
+// Do NOT reassign them here — that would overwrite the handlers and corrupt the load counter.
 
 // Game variables
 let gameRunning = false;
