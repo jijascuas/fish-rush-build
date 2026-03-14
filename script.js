@@ -610,21 +610,35 @@ setTimeout(function() {
 
 
 
-// Global helper for clean screen switching
+// Global helper for clean screen switching - using direct styles for mobile reliability
 function switchScreen(newScreen) {
     const screens = [loadingScreen, startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen];
     
-    // 1. Hide ALL screens first
+    // 1. Hide ALL screens first using direct style
     screens.forEach(s => {
         if (s) {
+            s.style.display = 'none';
+            s.style.opacity = '0';
+            s.style.pointerEvents = 'none';
             s.classList.remove('active');
             s.classList.add('hidden');
         }
     });
 
+    // Also force-hide any remnants of loadingScreen
+    const ls = document.getElementById('loadingScreen');
+    if (ls && newScreen !== loadingScreen) {
+        ls.style.display = 'none';
+        ls.style.opacity = '0';
+        ls.style.pointerEvents = 'none';
+    }
+
     // 2. Show the requested screen
     if (newScreen && newScreen.id) {
         console.log(`[SwitchScreen] Opening ${newScreen.id}`);
+        newScreen.style.display = 'flex';
+        newScreen.style.opacity = '1';
+        newScreen.style.pointerEvents = 'auto';
         newScreen.classList.remove('hidden');
         newScreen.classList.add('active');
         
@@ -632,15 +646,17 @@ function switchScreen(newScreen) {
         if (canvas) canvas.style.pointerEvents = 'none';
 
         // Ads management
-        if (newScreen === startScreen || newScreen === extrasScreen || newScreen === optionsScreen || newScreen === rankingScreen) {
-            showBanner();
-        } else {
-            hideBanner();
-        }
+        try {
+            if (newScreen === startScreen || newScreen === extrasScreen || newScreen === optionsScreen || newScreen === rankingScreen) {
+                showBanner();
+            } else {
+                hideBanner();
+            }
+        } catch(e) { console.warn("Ads error:", e); }
     } else {
         // null means starting game logic (hide all screens)
         if (canvas) canvas.style.pointerEvents = 'auto';
-        hideBanner();
+        try { hideBanner(); } catch(e) {}
     }
 }
 
@@ -695,7 +711,6 @@ const OBSTACLE_TYPES = [
 ];
 
 // Event listeners - Wrapped in safe checks to prevent crashes
-// Event listeners - Wrapped in safe checks to prevent crashes
 const setupButton = (idOrEl, handler) => {
     const btn = typeof idOrEl === 'string' ? document.getElementById(idOrEl) : idOrEl;
     if (!btn) {
@@ -707,59 +722,73 @@ const setupButton = (idOrEl, handler) => {
     const trigger = (e) => {
         if (isProcessing) return;
         isProcessing = true;
-        setTimeout(() => { isProcessing = false; }, 400);
+        
+        // Block rapid multiple clicks
+        setTimeout(() => { isProcessing = false; }, 500);
         
         console.log(`[Interaction] ${btn.id || 'btn'} triggered by ${e.type}`);
-        soundSystem.playPopSound();
-        handler();
         
-        // Visual feedback
+        // Execute action first
+        try { handler(); } catch(err) { console.error("Handler error:", err); }
+        
+        // Sound and visual feedback second (so they don't block the action)
+        try { soundSystem.playPopSound(); } catch(e) {}
+        
         btn.style.transform = 'scale(0.9)';
-        setTimeout(() => { btn.style.transform = ''; }, 100);
+        setTimeout(() => { try { btn.style.transform = ''; } catch(e) {} }, 100);
+        
+        if (e && e.cancelable) e.preventDefault();
     };
 
-    // Use multiple event types for maximum compatibility
-    btn.addEventListener('pointerdown', (e) => {
-        if (e.pointerType === 'touch' || e.button === 0) trigger(e);
-    }, { passive: true });
-    
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        trigger(e);
+    // Touchstart is most responsive on mobile
+    btn.addEventListener('touchstart', trigger, { passive: false });
+    // Keep click/mousedown as fallback for non-touch
+    btn.addEventListener('mousedown', (e) => {
+        if (e.button === 0) trigger(e);
     });
 };
 
 function bindEvents() {
-    setupButton('startButton', startGame);
-    setupButton('extrasButton', showExtras);
-    setupButton('optionsButton', showOptions);
-    setupButton('creditsButton', showCredits);
-    setupButton('rankingButton', showRanking);
-    setupButton('restartButton', restartGame);
-    setupButton('menuButton', backToMenu);
-    setupButton('submitScoreButton', submitScore);
+    // Wrap each in try-catch so one missing button doesn't kill the whole script
+    const buttons = [
+        { id: 'startButton', fn: startGame },
+        { id: 'extrasButton', fn: showExtras },
+        { id: 'optionsButton', fn: showOptions },
+        { id: 'creditsButton', fn: showCredits },
+        { id: 'rankingButton', fn: showRanking },
+        { id: 'restartButton', fn: restartGame },
+        { id: 'menuButton', fn: backToMenu },
+        { id: 'submitScoreButton', fn: submitScore },
+        { id: 'backButton', fn: hideOptions },
+        { id: 'extrasBackButton', fn: hideExtras },
+        { id: 'creditsBackButton', fn: hideCredits },
+        { id: 'rankingBackButton', fn: hideRanking },
+        { id: 'nameEntryBackButton', fn: () => switchScreen(startScreen) }
+    ];
 
-    setupButton('backButton', hideOptions);
-    setupButton('extrasBackButton', hideExtras);
-    setupButton('creditsBackButton', hideCredits);
-    setupButton('rankingBackButton', hideRanking);
-    setupButton('nameEntryBackButton', () => switchScreen(startScreen));
+    buttons.forEach(btn => {
+        try { setupButton(btn.id, btn.fn); } catch(e) { console.warn(`Failed binding ${btn.id}`, e); }
+    });
     
-    // Bind skins
+    // Bind skins separately
     appearanceButtons.forEach((button, index) => {
         if (button) {
-            setupButton(button, () => {
-                const unlockReq = parseInt(button.getAttribute('data-unlock') || '0');
-                if (highScore >= unlockReq) {
-                    selectedAppearance = index;
-                    appearanceButtons.forEach(btn => btn && btn.classList.remove('selected'));
-                    button.classList.add('selected');
-                }
-            });
+            try {
+                setupButton(button, () => {
+                    const unlockReq = parseInt(button.getAttribute('data-unlock') || '0');
+                    if (highScore >= unlockReq) {
+                        selectedAppearance = index;
+                        appearanceButtons.forEach(btn => btn && btn.classList.remove('selected'));
+                        button.classList.add('selected');
+                    }
+                });
+            } catch(e) {}
         }
     });
 
-    if (volumeSlider) volumeSlider.oninput = updateVolume;
+    if (volumeSlider) {
+        volumeSlider.oninput = updateVolume;
+    }
 }
 
 if (volumeSlider) volumeSlider.addEventListener('input', updateVolume);
