@@ -8,17 +8,13 @@ on:
 jobs:
   build:
     name: Build Android
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,77 +27,31 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Debug Keystore (Persistent SHA-1)
-        run: |
-          mkdir -p ~/.android
-          if [ -f "android/app/debug.keystore" ]; then
-            echo "Using existing debug.keystore"
-            cp android/app/debug.keystore ~/.android/debug.keystore
-          else
-            echo "Generating persistent debug.keystore..."
-            mkdir -p android/app
-            keytool -genkey -v -keystore android/app/debug.keystore \
-              -alias androiddebugkey \
-              -storepass android \
-              -keypass android \
-              -keyalg RSA -keysize 2048 -validity 10000 \
-              -dname "CN=FishRush Debug,O=FishRush,C=ES"
-            
-            cp android/app/debug.keystore ~/.android/debug.keystore
-            
-            git config --global user.name "GitHub Actions"
-            git config --global user.email "actions@github.com"
-            git add android/app/debug.keystore
-            git commit -m "Auto-generate persistent debug.keystore" || true
-            # Note: Push might fail if no token is set up for write auth, but we continue.
-            git push || true
-          fi
-          echo "=== SHA-1 FINGERPRINT (Use this for Firebase) ==="
-          keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:" || echo "SHA1 retrieval failed"
-          echo "================================================="
-
-      - name: Install Dependencies
-        run: npm install --no-audit --no-fund
-
       - name: Build Web Assets
+        shell: powershell
         run: |
-          mkdir -p www
-          # Copy each explicitly to ensure they exist and fail fast if missing
-          cp index.html www/
-          cp script.js www/
-          cp style.css www/
-          cp privacy-policy-en.html www/
-          # Folders
-          cp -r assets www/ || true
-          cp -r js www/ || true
-          ls -R www
+          npm run build
+          if (-not (Test-Path www/index.html)) { throw "index.html missing in www!" }
+          ls www
 
       - name: Capacitor Sync
-        shell: bash
+        shell: powershell
         run: |
           npm install
-          # Robust check for android platform
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
+          if (-not (Test-Path android)) { npx cap add android }
           npx cap sync android --verbose
 
       - name: Build Android APK (Debug)
+        shell: powershell
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew assembleDebug -x lint -x test --console=plain
 
       - name: Build Android App Bundle (Release)
+        shell: powershell
         run: |
           cd android
-          chmod +x gradlew
           ./gradlew bundleRelease -x lint -x test --console=plain
-
-      - name: Diagnostic - List Build Outputs
-        if: always()
-        run: |
-          find android/app/build/outputs -maxdepth 4 -name "*.apk" -o -name "*.aab" || echo "No build artifacts found"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -115,9 +65,4 @@ jobs:
           name: FishRush-Release-AAB
           path: android/app/build/outputs/bundle/release/app-release.aab
 
-      - name: Upload Persistence Keystore
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-keystore
-          path: android/app/debug.keystore
 
