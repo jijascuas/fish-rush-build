@@ -17,13 +17,13 @@ async function initAds() {
     if (window.Capacitor && window.Capacitor.Plugins.AdMob) {
         const { AdMob } = window.Capacitor.Plugins;
         try {
-            // Give the bridge a moment to stabilize
-            await new Promise(r => setTimeout(r, 1000));
-            await AdMob.initialize(); // Removed requestTrackingAuthorization which is for iOS ATT
+            await AdMob.initialize(); 
             console.log("AdMob Initialized");
         } catch (e) {
-            console.error("AdMob Init Error", e);
+            console.error("AdMob Init Error:", e.message || e);
         }
+    } else {
+        console.log("AdMob not available - assuming non-native environment");
     }
 }
 
@@ -70,8 +70,7 @@ async function hideBanner() {
     }
 }
 
-// Start Ads asynchronously
-setTimeout(initAds, 500);
+// Auto-initialization moved to DOMContentLoaded listener
 
 
 // --- Mobile App State Management ---
@@ -166,8 +165,14 @@ function initFirebase() {
     }
 }
 
-// Call initFirebase early but safely
-setTimeout(initFirebase, 100);
+// Safe Initialization
+window.addEventListener('DOMContentLoaded', () => {
+    // Give external SDKs a moment to settle
+    setTimeout(() => {
+        initFirebase();
+        initAds();
+    }, 300);
+});
 
 
 // Appearance buttons (6 appearances)
@@ -776,7 +781,11 @@ async function fetchLeaderboard() {
     }
 
     try {
-        if (!db) throw new Error("Database not initialized");
+        if (!db) {
+            console.warn("Database not initialized. Leaderboard unavailable.");
+            leaderboardList.innerHTML = '<div class="loading-ranks">Offline Mode - No scores available</div>';
+            return;
+        }
         const snapshot = await db.collection('leaderboard')
             .orderBy('score', 'desc')
             .limit(100)

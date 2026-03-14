@@ -2,7 +2,6 @@
   "appId": "com.fishrush.jijascuas",
   "appName": "Fish Rush",
   "webDir": "www",
-  "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https"
   },
