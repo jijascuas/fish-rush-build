@@ -424,52 +424,68 @@ const scoreLabelImage = new Image();
 scoreLabelImage.src = 'assets/ui/score_label.png';
 
 
-// Handler for image load errors - still counts toward total so loading doesn't get stuck
-function handleImageError(e) {
-    console.warn('Image failed to load:', e.target ? e.target.src : 'unknown');
-    checkImagesLoaded(); // Count it anyway so loading doesn't freeze
-}
+// --- Robust Loading System ---
+// Uses a counter + a hard timeout to GUARANTEE the game always starts.
+// Even if onload/onerror never fires (common in Android WebViews), the
+// 6-second timeout will kick in and proceed anyway.
 
-// Loading state
 let imagesLoaded = 0;
-const totalImages = 33; // Increased to 33 to account for loadingBgImage
-
+const totalImages = 33;
+let loadingDone = false;
 const loadingStartTime = Date.now();
+
+function proceedToGame() {
+    if (loadingDone) return; // Prevent calling twice
+    loadingDone = true;
+    console.log(`[Loading] Proceeding. Loaded ${imagesLoaded}/${totalImages} images.`);
+
+    const elapsed = Date.now() - loadingStartTime;
+    const wait = Math.max(0, 3000 - elapsed);
+
+    setTimeout(() => {
+        drawInitialState();
+        soundSystem.setVolume(currentVolume / 10);
+
+        const touchMsg = document.getElementById('touchToStart');
+        if (touchMsg) touchMsg.style.display = 'block';
+        startScreen.style.display = 'flex';
+
+        const enterGame = () => {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                switchScreen(startScreen);
+                loadingScreen.style.opacity = '1';
+                if (touchMsg) touchMsg.style.display = 'none';
+                soundSystem.playIntroSound();
+            }, 300);
+            window.removeEventListener('click', enterGame);
+            window.removeEventListener('touchstart', enterGame);
+        };
+        window.addEventListener('click', enterGame);
+        window.addEventListener('touchstart', enterGame);
+    }, wait);
+}
 
 function checkImagesLoaded() {
     imagesLoaded++;
     if (imagesLoaded >= totalImages) {
-        const elapsedTime = Date.now() - loadingStartTime;
-        const remainingTime = Math.max(0, 3000 - elapsedTime);
-        
-        setTimeout(() => {
-            // Prepare start menu
-            startScreen.style.display = 'flex';
-            drawInitialState();
-            soundSystem.setVolume(currentVolume / 10);
-
-            const touchMsg = document.getElementById('touchToStart');
-            if (touchMsg) touchMsg.style.display = 'block';
-
-            const enterGame = () => {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => {
-                    switchScreen(startScreen);
-                    loadingScreen.style.opacity = '1';
-                    if (touchMsg) touchMsg.style.display = 'none';
-                    // Play intro sound on first click to unlock audio
-                    soundSystem.playIntroSound();
-                }, 300);
-                
-                window.removeEventListener('click', enterGame);
-                window.removeEventListener('touchstart', enterGame);
-            };
-
-            window.addEventListener('click', enterGame);
-            window.addEventListener('touchstart', enterGame);
-        }, remainingTime);
+        proceedToGame();
     }
 }
+
+function handleImageError(e) {
+    console.warn('[Loading] Image failed:', e && e.target ? e.target.src : 'unknown');
+    checkImagesLoaded();
+}
+
+// SAFETY NET: After 6 seconds, proceed no matter what.
+// This handles cases where some onload/onerror events never fire in Android WebView.
+setTimeout(() => {
+    if (!loadingDone) {
+        console.warn(`[Loading] Timeout! Only ${imagesLoaded}/${totalImages} images loaded. Proceeding anyway.`);
+        proceedToGame();
+    }
+}, 6000);
 
 // Global helper for clean screen switching
 function switchScreen(newScreen) {

@@ -69,14 +69,39 @@ jobs:
 
       - name: Capacitor Sync
         run: |
-          # Rename icon if it has the double extension from the user upload
-          if [ -f "resources/icon.jpg.png" ]; then mv resources/icon.jpg.png resources/icon.png; fi
-          if [ -f "resources/icon.jpg" ]; then mv resources/icon.jpg resources/icon.png; fi
-          
-          # Generate icons and splash screens
-          npx @capacitor/assets generate --android
-          
+          # Generate Android icons from resources/icon.png using ImageMagick (always available on ubuntu)
+          ICON_SRC="resources/icon.png"
+          RES="android/app/src/main/res"
+
+          declare -A SIZES=(
+            ["mipmap-mdpi"]=48
+            ["mipmap-hdpi"]=72
+            ["mipmap-xhdpi"]=96
+            ["mipmap-xxhdpi"]=144
+            ["mipmap-xxxhdpi"]=192
+          )
+          declare -A FG_SIZES=(
+            ["mipmap-mdpi"]=108
+            ["mipmap-hdpi"]=162
+            ["mipmap-xhdpi"]=216
+            ["mipmap-xxhdpi"]=324
+            ["mipmap-xxxhdpi"]=432
+          )
+
+          for density in "${!SIZES[@]}"; do
+            size="${SIZES[$density]}"
+            fgsize="${FG_SIZES[$density]}"
+            mkdir -p "$RES/$density"
+            convert "$ICON_SRC" -resize "${size}x${size}" "$RES/$density/ic_launcher.png"
+            convert "$ICON_SRC" -resize "${size}x${size}" "$RES/$density/ic_launcher_round.png"
+            convert "$ICON_SRC" -resize "${fgsize}x${fgsize}" "$RES/$density/ic_launcher_foreground.png"
+            # Solid blue background for adaptive icon
+            convert -size "${size}x${size}" xc:"#0a3d62" "$RES/$density/ic_launcher_background.png"
+            echo "Generated icons for $density (${size}px / ${fgsize}px)"
+          done
+
           npx cap sync android || npx cap add android && npx cap sync android
+
 
       - name: Build Android APK (Debug)
         run: |
