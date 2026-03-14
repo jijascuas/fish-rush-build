@@ -79,6 +79,7 @@ jobs:
       - name: Capacitor Sync
         shell: bash
         run: |
+          npm install
           # Robust check for android platform
           if [ ! -d "android" ]; then
             npx cap add android
