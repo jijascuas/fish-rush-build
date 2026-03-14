@@ -165,7 +165,7 @@ let db = null;
 let auth = null;
 
 function initFirebase() {
-    if (typeof firebase !== 'undefined') {
+    if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
         try {
             firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
@@ -180,6 +180,9 @@ function initFirebase() {
         } catch (e) {
             console.error("Firebase Init Error", e);
         }
+    } else if (typeof firebase !== 'undefined') {
+        db = firebase.firestore();
+        auth = firebase.auth();
     } else {
         console.warn("Firebase SDK not found. Offline mode active.");
     }
@@ -574,13 +577,20 @@ function handleImageError(e) {
     checkImagesLoaded();
 }
 
-// HARD FALLBACK: After 6s, force proceed no matter what
+// HARD FALLBACK: After 4s, set timerDone and try to proceed.
+// After 7s, force proceed no matter what.
+setTimeout(function() {
+    console.log('[Loading] 4s timer done.');
+    timerDone = true;
+    if (imagesReady && !loadingDone) proceedToGame();
+}, 4000);
+
 setTimeout(function() {
     if (!loadingDone) {
-        console.warn('[Loading] 6s HARD TIMEOUT fired.');
+        console.warn('[Loading] 7s HARD TIMEOUT fired.');
         proceedToGame();
     }
-}, 6000);
+}, 7000);
 
 
 
