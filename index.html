@@ -16,6 +16,32 @@
     <div id="loadingScreen" class="screen active">
         <div id="loadingText">LOADING...</div>
     </div>
+
+    <!-- NUCLEAR LOADING FALLBACK: runs completely independently of script.js -->
+    <script>
+    (function() {
+        var DELAY = 3500; // ms before forcing menu open
+        function forceShowMenu() {
+            var ls = document.getElementById('loadingScreen');
+            var ss = document.getElementById('startScreen');
+            if (ls) {
+                ls.style.cssText = 'display:none !important; opacity:0 !important; pointer-events:none !important;';
+                ls.className = 'screen hidden';
+            }
+            if (ss) {
+                ss.style.cssText = 'display:flex !important; opacity:1 !important; pointer-events:auto !important;';
+                ss.className = 'screen active';
+            }
+            // Signal to script.js that we already transitioned
+            window._loadingForceDone = true;
+            if (typeof loadingDone !== 'undefined') { loadingDone = true; }
+        }
+        // Primary timer
+        setTimeout(forceShowMenu, DELAY);
+        // Nuclear fallback
+        setTimeout(forceShowMenu, 7000);
+    })();
+    </script>
     
     <div id="startScreen" class="screen hidden">
         <img src="assets/ui/logo_main.png" class="title-image" alt="Fish Rush">
