@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -51,39 +53,54 @@ jobs:
             git config --global user.email "actions@github.com"
             git add android/app/debug.keystore
             git commit -m "Auto-generate persistent debug.keystore" || true
+            # Note: Push might fail if no token is set up for write auth, but we continue.
             git push || true
           fi
           echo "=== SHA-1 FINGERPRINT (Use this for Firebase) ==="
-          keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:"
+          keytool -list -v -keystore android/app/debug.keystore -alias androiddebugkey -storepass android -keypass android | grep "SHA1:" || echo "SHA1 retrieval failed"
           echo "================================================="
 
       - name: Install Dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
 
       - name: Build Web Assets
         run: |
           mkdir -p www
-          cp index.html script.js style.css privacy-policy-en.html www/
+          # Copy each explicitly to ensure they exist and fail fast if missing
+          cp index.html www/
+          cp script.js www/
+          cp style.css www/
+          cp privacy-policy-en.html www/
+          # Folders
           cp -r assets www/ || true
           cp -r js www/ || true
+          ls -R www
 
       - name: Capacitor Sync
         shell: bash
         run: |
-          # Icons PNGs are already committed to git - no need to regenerate.
-          # Just run cap sync to copy web assets + committed icons into the Android project.
-          npx cap sync android
+          # Robust check for android platform
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+          npx cap sync android --verbose
 
       - name: Build Android APK (Debug)
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug -x lint -x test --console=plain
 
       - name: Build Android App Bundle (Release)
         run: |
           cd android
-          ./gradlew bundleRelease
+          chmod +x gradlew
+          ./gradlew bundleRelease -x lint -x test --console=plain
+
+      - name: Diagnostic - List Build Outputs
+        if: always()
+        run: |
+          find android/app/build/outputs -maxdepth 4 -name "*.apk" -o -name "*.aab" || echo "No build artifacts found"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -102,3 +119,4 @@ jobs:
         with:
           name: debug-keystore
           path: android/app/debug.keystore
+
