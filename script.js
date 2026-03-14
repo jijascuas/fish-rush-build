@@ -1,6 +1,10 @@
 // --- Global Globals ---
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+let canvas, ctx;
+
+function initCanvas() {
+    canvas = document.getElementById('gameCanvas');
+    if (canvas) ctx = canvas.getContext('2d');
+}
 
 // --- Global Error Handler ---
 window.onerror = function(msg, url, lineNo, columnNo, error) {
@@ -145,22 +149,20 @@ function initElements() {
     leaderboardList = document.getElementById('leaderboardList');
     playerNameInput = document.getElementById('playerNameInput');
     submitScoreButton = document.getElementById('submitScoreButton');
+}
 
-    // NUCLEAR REMOVAL: Hide loading screen immediately upon element discovery
-    if (loadingScreen) {
-        loadingScreen.style.setProperty('display', 'none', 'important');
-        loadingScreen.style.setProperty('opacity', '0', 'important');
-        loadingScreen.style.setProperty('visibility', 'hidden', 'important');
-    }
+// Consolidate initialization
+function runInit() {
+    initCanvas();
+    initElements();
+    bindEvents();
+    
+    // Safety check for start screen
     if (startScreen) {
         startScreen.style.setProperty('display', 'flex', 'important');
         startScreen.style.setProperty('opacity', '1', 'important');
-        startScreen.style.setProperty('pointer-events', 'auto', 'important');
     }
 }
-
-// Initialize immediately but also in DOMContentLoaded just in case
-initElements();
 
 
 // --- Firebase Configuration ---
@@ -210,10 +212,8 @@ function initializeApplication() {
     console.log("[Startup] Initializing application components...");
     
     try {
-        initElements();
-        bindEvents();
-        
-        // Immediately show the menu regardless of image status
+        runInit();
+        // Force the menu open
         switchScreen(startScreen);
     } catch (e) {
         console.error("[Startup] Critical Error during init:", e);
@@ -227,9 +227,12 @@ function initializeApplication() {
 }
 
 // Execute on multiple triggers for maximum safety
-window.addEventListener('DOMContentLoaded', initializeApplication);
-// For Capacitor, some plugins might need a bit more time
-setTimeout(initializeApplication, 1000);
+if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', initializeApplication);
+} else {
+    initializeApplication();
+}
+setTimeout(initializeApplication, 500);
 
 
 
