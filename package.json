@@ -4,10 +4,10 @@
   "description": "Underwater avoid-em-up game",
   "main": "index.html",
   "dependencies": {
-    "@capacitor-community/admob": "^8.0.0",
-    "@capacitor/android": "^6.2.1",
-    "@capacitor/cli": "^6.2.1",
-    "@capacitor/core": "^6.2.1"
+    "@capacitor-community/admob": "^6.2.0",
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
   },
   "scripts": {
     "build": "powershell -Command \"if (Test-Path www) { Remove-Item -Recurse -Force www }; New-Item -ItemType Directory -Path www; Copy-Item index.html, script.js, style.css, privacy-policy-en.html www/; Copy-Item js, assets -Destination www/ -Recurse\"",
@@ -18,7 +18,6 @@
   "author": "jijascuas",
   "license": "ISC",
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5",
-    "firebase": "^11.0.0"
+    "firebase": "^10.7.1"
   }
 }
