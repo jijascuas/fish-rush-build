@@ -105,11 +105,13 @@ if (window.Capacitor) {
 }
 // -------------------------
 // --- Global Document Elements ---
-let startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen;
+let loadingScreen, loadingText, startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen;
 let startButton, extrasButton, optionsButton, creditsButton, rankingButton, restartButton, menuButton;
 let finalScoreDisplay, volumeSlider, volumeValue, leaderboardList, playerNameInput, submitScoreButton;
 
 function initElements() {
+    loadingScreen = document.getElementById('loadingScreen');
+    loadingText = document.getElementById('loadingText');
     startScreen = document.getElementById('startScreen');
     extrasScreen = document.getElementById('extrasScreen');
     optionsScreen = document.getElementById('optionsScreen');
@@ -181,9 +183,23 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         initFirebase();
         initAds();
-        // Force start screen if loading hasn't finished
-        if (!loadingDone) switchScreen(startScreen);
     }, 300);
+
+    // Initial Loading logic: Wait 5 seconds, then allow tap to start
+    console.log("[Loading] Starting 5s timer...");
+    setTimeout(() => {
+        if (loadingText) {
+            loadingText.innerHTML = "TAP TO START";
+            console.log("[Loading] Ready for interaction");
+        }
+        
+        if (loadingScreen) {
+            setupButton(loadingScreen, () => {
+                console.log("[Loading] Transitioning to menu");
+                proceedToGame(); 
+            });
+        }
+    }, 5000);
 });
 
 
@@ -511,10 +527,10 @@ const loadingStartTime = Date.now();
 function proceedToGame() {
     if (loadingDone) return; 
     loadingDone = true;
-    console.log(`[Loading] Images ready. Showing menu.`);
+    console.log(`[Loading] Entering Menu.`);
     
     drawInitialState();
-    soundSystem.setVolume(currentVolume / 10);
+    if (volumeSlider) updateVolume();
     switchScreen(startScreen);
 }
 
@@ -531,14 +547,8 @@ function handleImageError(e) {
     checkImagesLoaded();
 }
 
-// SAFETY NET: After 7 seconds, proceed no matter what.
-// This handles cases where some onload/onerror events never fire in Android WebView.
-setTimeout(() => {
-    if (!loadingDone) {
-        console.warn(`[Loading] Timeout! Proceeding anyway.`);
-        proceedToGame();
-    }
-}, 7000);
+// NO AUTO-PROCEED: We wait for the user to tap as requested.
+
 
 
 

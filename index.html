@@ -13,7 +13,11 @@
 <body>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     
-    <div id="startScreen" class="screen">
+    <div id="loadingScreen" class="screen active">
+        <div id="loadingText">LOADING...</div>
+    </div>
+    
+    <div id="startScreen" class="screen hidden">
         <img src="assets/ui/logo_main.png" class="title-image" alt="Fish Rush">
         <div class="start-buttons-container">
             <button id="startButton" class="button"></button>
