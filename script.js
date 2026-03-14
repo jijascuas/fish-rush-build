@@ -211,7 +211,16 @@ class GameSoundSystem {
 
     init() {
         if (!this.ctx) {
-            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            try {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) {
+                    this.ctx = new AudioContextClass();
+                } else {
+                    console.warn("AudioContext not supported in this browser.");
+                }
+            } catch (e) {
+                console.error("Failed to initialize AudioContext:", e);
+            }
         }
     }
 
@@ -257,6 +266,7 @@ class GameSoundSystem {
 
     playScoreSound() {
         this.init();
+        if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();
         
         const now = this.ctx.currentTime;
@@ -280,6 +290,7 @@ class GameSoundSystem {
 
     playHitSound() {
         this.init();
+        if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
@@ -300,6 +311,7 @@ class GameSoundSystem {
 
     playLifeSound() {
         this.init();
+        if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
@@ -321,6 +333,7 @@ class GameSoundSystem {
 
     playShieldSound() {
         this.init();
+        if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
@@ -342,6 +355,7 @@ class GameSoundSystem {
 
     playPopSound() {
         this.init();
+        if (!this.ctx) return;
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
@@ -531,6 +545,9 @@ function switchScreen(newScreen) {
         // Ensure it's opaque immediately
         newScreen.style.opacity = '1';
         newScreen.style.pointerEvents = 'auto';
+        
+        // Ensure canvas is NOT blocking when a screen is active
+        if (canvas) canvas.style.pointerEvents = 'none';
 
         // Show banner on menu screens
         if (newScreen === startScreen || newScreen === extrasScreen || newScreen === optionsScreen || newScreen === rankingScreen) {
@@ -539,6 +556,8 @@ function switchScreen(newScreen) {
             hideBanner();
         }
     } else {
+        // Hiding all screens (starting game)
+        if (canvas) canvas.style.pointerEvents = 'auto';
         hideBanner();
     }
 }
@@ -597,29 +616,38 @@ const OBSTACLE_TYPES = [
 ];
 
 // Event listeners - Wrapped in safe checks to prevent crashes
-const setupButton = (id, handler) => {
-    const btn = document.getElementById(id);
+// Event listeners - Wrapped in safe checks to prevent crashes
+const setupButton = (btnOrId, handler) => {
+    const btn = typeof btnOrId === 'string' ? document.getElementById(btnOrId) : btnOrId;
     if (!btn) return;
     
-    let lastTime = 0;
+    let isProcessing = false;
     const trigger = (e) => {
-        const now = Date.now();
-        if (now - lastTime < 500) return; // Prevent double trigger within 500ms
-        lastTime = now;
+        if (isProcessing) return;
+        isProcessing = true;
         
+        // Short debounce to prevent double-triggering
+        setTimeout(() => { isProcessing = false; }, 400);
+        
+        console.log(`[Interaction] Button ${btn.id || 'anonymous'} triggered by ${e.type}`);
         soundSystem.playPopSound();
         handler();
     };
 
+    // Use pointerdown for immediate response on both touch and mouse
+    btn.addEventListener('pointerdown', (e) => {
+        // Only trigger on primary button (left click) or any touch
+        if (e.pointerType === 'touch' || e.button === 0) {
+            trigger(e);
+        }
+    }, { passive: true });
+
+    // Prevent default click behavior to stop ghost clicks or unintended refreshes
     btn.addEventListener('click', (e) => {
         e.preventDefault();
+        // Fallback for cases where pointerdown might be blocked, but debounce will handle double trigger
         trigger(e);
     });
-    
-    btn.addEventListener('touchstart', (e) => {
-        // e.preventDefault(); // Don't prevent default so focus etc works, but we act immediately
-        trigger(e);
-    }, { passive: true });
 };
 
 
@@ -654,13 +682,14 @@ document.querySelectorAll('.button, .privacy-link').forEach(btn => {
 
 appearanceButtons.forEach((button, index) => {
     if (button) {
-        button.addEventListener('click', () => {
+        setupButton(button, () => {
             const unlockReq = parseInt(button.getAttribute('data-unlock') || '0');
             if (highScore >= unlockReq) {
-                soundSystem.playPopSound();
                 selectedAppearance = index;
                 appearanceButtons.forEach(btn => btn && btn.classList.remove('selected'));
                 button.classList.add('selected');
+            } else {
+                console.log(`[Extras] Skin locked. Need ${unlockReq} pts.`);
             }
         });
     }
@@ -852,6 +881,7 @@ async function submitScore() {
 }
 
 function updateVolume() {
+    if (!volumeSlider) return;
     currentVolume = parseInt(volumeSlider.value);
     volumeValue.innerHTML = '';
     const volStr = currentVolume.toString();

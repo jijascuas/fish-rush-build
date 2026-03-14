@@ -132,6 +132,8 @@ canvas.game-active {
     margin: 10px 0;
     width: 260px;
     max-width: 100%;
+    touch-action: manipulation;
+    pointer-events: auto !important;
 }
 .button:hover {
     background: #3a8bff;
@@ -168,7 +170,7 @@ canvas.game-active {
     max-height: 160px;
     border-radius: 50%;
     cursor: pointer;
-    transition: transform 0.1s active;
+    transition: transform 0.1s ease-out;
     margin: 1vmin;
     font-size: 14px;
     display: flex;
@@ -182,7 +184,8 @@ canvas.game-active {
     text-align: center;
     background-color: transparent !important;
     pointer-events: auto !important;
-    z-index: 2100;
+    z-index: 2500;
+    touch-action: manipulation;
 }
 #startScreen .button:active {
     transform: scale(0.9); /* Visual feedback on touch */
