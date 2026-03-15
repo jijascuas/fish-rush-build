@@ -6,10 +6,20 @@ function initCanvas() {
     if (canvas) ctx = canvas.getContext('2d');
 }
 
-// --- Global Error Handler ---
+// --- Global Debug Logger ---
+function vlog(msg) {
+    console.log(msg);
+    const logEl = document.getElementById('debugLog');
+    if (logEl) {
+        const div = document.createElement('div');
+        div.textContent = `[${new Date().toLocaleTimeString().split(' ')[0]}] ${msg}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+}
+
 window.onerror = function(msg, url, lineNo, columnNo, error) {
-    console.error(`GLOBAL ERROR: ${msg} at ${url}:${lineNo}`);
-    // If the game is still loading, try to proceed anyway after 2 seconds
+    vlog(`ERROR: ${msg} @ ${lineNo}`);
     if (!loadingDone) {
         setTimeout(proceedToGame, 2000);
     }
@@ -570,21 +580,20 @@ let timerDone = false;
 function proceedToGame() {
     if (loadingDone) return;
     loadingDone = true;
-    console.log('[Loading] Proceeding to game menu...');
+    vlog('Proceeding to menu...');
     
-    // 1. Force hide the specific loading element by ID to bypass any variable issues
+    // 1. COMPLETELY REMOVE the loading screen from DOM to be 100% sure it's not blocking
     const el = document.getElementById('loadingScreen');
     if (el) {
-        el.style.setProperty('display', 'none', 'important');
-        el.style.setProperty('pointer-events', 'none', 'important');
-        el.classList.add('hidden');
+        el.style.display = 'none';
+        if (el.parentNode) el.parentNode.removeChild(el);
     }
     
     // 2. Clear background block if any
     document.body.style.overflow = 'auto';
 
     switchScreen(startScreen);
-    try { drawInitialState(); } catch(e) { console.error("Initial draw failed", e); }
+    try { drawInitialState(); } catch(e) { vlog("Initial draw fail"); }
 }
 
 function checkImagesLoaded() {
@@ -727,33 +736,30 @@ const setupButton = (idOrEl, handler) => {
     const trigger = (e) => {
         if (isProcessing) return;
         isProcessing = true;
+        setTimeout(() => { isProcessing = false; }, 400);
         
-        // Block rapid multiple clicks
-        setTimeout(() => { isProcessing = false; }, 500);
+        vlog(`Triggered: ${btn.id || 'btn'}`);
         
-        console.log(`[Interaction] ${btn.id || 'btn'} triggered by ${e.type}`);
+        try { handler(); } catch(err) { vlog(`Handler Error: ${btn.id}`); }
         
-        // Execute action first
-        try { handler(); } catch(err) { console.error("Handler error:", err); }
-        
-        // Sound and visual feedback second (so they don't block the action)
         try { soundSystem.playPopSound(); } catch(e) {}
         
-        btn.style.transform = 'scale(0.9)';
+        btn.style.transform = 'scale(0.85)';
         setTimeout(() => { try { btn.style.transform = ''; } catch(e) {} }, 100);
         
         if (e && e.cancelable) e.preventDefault();
     };
 
-    // Unified interaction handler
-    const onInteract = (e) => {
-        // Only prevent default on touch if we are handling it here to avoid ghost clicks
-        if (e.type === 'touchstart' && e.cancelable) e.preventDefault();
-        trigger(e);
-    };
-
-    btn.addEventListener('touchstart', onInteract, { passive: false });
-    btn.addEventListener('click', onInteract);
+    // Use pointerdown for broad compatibility and speed
+    btn.addEventListener('pointerdown', trigger);
+    // Fallback for very old devices
+    if (!window.PointerEvent) {
+        btn.addEventListener('touchstart', (e) => {
+            if (e.cancelable) e.preventDefault();
+            trigger(e);
+        }, { passive: false });
+        btn.addEventListener('click', trigger);
+    }
 };
 
 function bindEvents() {
