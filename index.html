@@ -15,6 +15,18 @@
         <div id="loadingText">CARGANDO...</div>
     </div>
     
+    <script>
+        // SEGURO DE EMERGENCIA: Si el juego no arranca en 6 segundos, quitamos la pantalla sí o sí
+        setTimeout(function() {
+            var ls = document.getElementById('loadingScreen');
+            if (ls) {
+                ls.style.display = 'none';
+                ls.style.pointerEvents = 'none';
+                console.warn("Seguro de emergencia activado: Ocultando carga.");
+            }
+        }, 6000);
+    </script>
+    
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     
     <div id="startScreen" class="screen active">

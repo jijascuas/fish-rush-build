@@ -122,6 +122,11 @@ if (window.Capacitor) {
 // --- Global Document Elements ---
 let loadingScreen = document.getElementById('loadingScreen');
 let loadingText = document.getElementById('loadingText');
+
+// Re-check immediately to be double-sure
+if (!loadingScreen) loadingScreen = document.getElementById('loadingScreen');
+if (!loadingText) loadingText = document.getElementById('loadingText');
+
 let startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen;
 let startButton, extrasButton, optionsButton, creditsButton, rankingButton, restartButton, menuButton;
 let finalScoreDisplay, volumeSlider, volumeValue, leaderboardList, playerNameInput, submitScoreButton;
@@ -567,15 +572,19 @@ function proceedToGame() {
     loadingDone = true;
     console.log('[Loading] Proceeding to game menu...');
     
-    // Force hide loading screen classes
-    if (loadingScreen) {
-        loadingScreen.classList.add('hidden');
-        loadingScreen.style.display = 'none';
-        loadingScreen.style.pointerEvents = 'none';
+    // 1. Force hide the specific loading element by ID to bypass any variable issues
+    const el = document.getElementById('loadingScreen');
+    if (el) {
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('pointer-events', 'none', 'important');
+        el.classList.add('hidden');
     }
     
+    // 2. Clear background block if any
+    document.body.style.overflow = 'auto';
+
     switchScreen(startScreen);
-    try { drawInitialState(); } catch(e) {}
+    try { drawInitialState(); } catch(e) { console.error("Initial draw failed", e); }
 }
 
 function checkImagesLoaded() {
