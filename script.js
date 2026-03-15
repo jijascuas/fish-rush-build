@@ -100,33 +100,36 @@ async function hideBanner() {
 
 // --- Mobile App State Management ---
 let isAppInBackground = false;
-if (window.Capacitor) {
+if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
     const { App } = window.Capacitor.Plugins;
     
-    App.addListener('appStateChange', ({ isActive }) => {
-        if (isActive) {
-            console.log("App active");
-            isAppInBackground = false;
-            // Resume music if we were in a game
-            if (gameRunning && !gameOver && !isDying) {
-                soundSystem.playMusic();
+    try {
+        App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+                console.log("App active");
+                isAppInBackground = false;
+                if (gameRunning && !gameOver && !isDying) {
+                    soundSystem.playMusic();
+                }
+            } else {
+                console.log("App background");
+                isAppInBackground = true;
+                soundSystem.music.pause();
             }
-        } else {
-            console.log("App background");
-            isAppInBackground = true;
-            soundSystem.music.pause();
-        }
-    });
+        });
 
-    App.addListener('backButton', () => {
-        if (gameRunning && !gameOver) {
-            backToMenu();
-        } else if (startScreen.style.display !== 'none') {
-            App.exitApp();
-        } else {
-            backToMenu();
-        }
-    });
+        App.addListener('backButton', () => {
+            if (gameRunning && !gameOver) {
+                backToMenu();
+            } else if (startScreen && startScreen.style.display !== 'none') {
+                App.exitApp();
+            } else {
+                backToMenu();
+            }
+        });
+    } catch(e) {
+        vlog("Capacitor App fail skip");
+    }
 }
 // -------------------------
 // --- Global Document Elements ---
