@@ -120,13 +120,17 @@ if (window.Capacitor) {
 }
 // -------------------------
 // --- Global Document Elements ---
-let loadingScreen, loadingText, startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen;
+let loadingScreen = document.getElementById('loadingScreen');
+let loadingText = document.getElementById('loadingText');
+let startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen;
 let startButton, extrasButton, optionsButton, creditsButton, rankingButton, restartButton, menuButton;
 let finalScoreDisplay, volumeSlider, volumeValue, leaderboardList, playerNameInput, submitScoreButton;
 
 function initElements() {
-    loadingScreen = document.getElementById('loadingScreen');
-    loadingText = document.getElementById('loadingText');
+    // Re-assign in case they were added dynamically, but keep the immediate ones
+    loadingScreen = loadingScreen || document.getElementById('loadingScreen');
+    loadingText = loadingText || document.getElementById('loadingText');
+    
     startScreen = document.getElementById('startScreen');
     extrasScreen = document.getElementById('extrasScreen');
     optionsScreen = document.getElementById('optionsScreen');
@@ -611,9 +615,12 @@ setTimeout(function() {
 function switchScreen(newScreen) {
     const screens = [loadingScreen, startScreen, extrasScreen, optionsScreen, creditsScreen, gameOverScreen, rankingScreen, nameEntryScreen];
     
-    // 1. Hide ALL screens first using forced styles to override any "!important" fallbacks
+    // 1. Hide ALL screens first - but ONLY hide loadingScreen if we are transitioning to the game or menu
     screens.forEach(s => {
         if (s) {
+            // Keep loading screen visible if we haven't finished loading yet and are trying to switch away
+            if (s === loadingScreen && !loadingDone && newScreen !== startScreen) return;
+            
             s.style.setProperty('display', 'none', 'important');
             s.style.setProperty('opacity', '0', 'important');
             s.style.setProperty('pointer-events', 'none', 'important');
